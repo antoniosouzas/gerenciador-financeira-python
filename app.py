@@ -269,11 +269,11 @@ else:
                     <script src="https://cdn.pluggy.ai/pluggy-connect/v2.8.2/pluggy-connect.js"></script>
                     <div id="pluggy-area"></div>
                     <script>
-                        const connect = new PluggyConnect({
+                        const connect = new PluggyConnect({{
                             connectToken: '{token}',
-                            onSuccess: (data) => { window.parent.location.href = '/?novo_item_id=' + data.item.id; },
-                            onClose: () => { document.getElementById('pluggy-area').innerHTML = 'Conexão encerrada.'; }
-                        });
+                            onSuccess: (data) => {{ window.parent.location.href = '/?novo_item_id=' + data.item.id; }},
+                            onClose: () => {{ document.getElementById('pluggy-area').innerHTML = 'Conexão encerrada.'; }}
+                        }});
                         connect.init();
                     </script>
                 """, height=600)
