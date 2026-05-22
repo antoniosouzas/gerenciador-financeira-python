@@ -201,9 +201,7 @@ def buscar_dados_reais(item_id):
     except Exception as e:
         return "ERRO_DADOS", []
 
-# Mapeamento completo de categorias 
 TRADUCAO_CATEGORIAS = {
-    # --- Adições específicas com base na sua imagem ---
     'TRANSFER - PIX': 'Transferência PIX',
     'TRANSFERS': 'Transferências',
     'DIGITAL SERVICES': 'Serviços Digitais',
@@ -217,13 +215,11 @@ TRADUCAO_CATEGORIAS = {
     'LATE PAYMENT AND OVERDRAFT COSTS': 'Juros e Multas',
     'TAX ON FINANCIAL OPERATIONS': 'Impostos (IOF/Taxas)',
     
-    # --- Categorias que já estavam em português na imagem ---
     'COMPRAS': 'Compras',
     'SUPERMERCADO': 'Supermercado',
     'TRANSPORTE': 'Transporte',
     'INTERNET': 'Internet',
 
-    # --- Traduções genéricas para garantir cobertura extra ---
     'FOOD_AND_DRINK': 'Alimentação',
     'FOOD AND DRINK': 'Alimentação',
     'RESTAURANT': 'Restaurante',
@@ -270,32 +266,25 @@ TRADUCAO_CATEGORIAS = {
 }
 
 def traduzir_categoria(cat_raw):
-    """Extrai e traduz categoria independente do formato retornado pela Pluggy."""
     if cat_raw is None:
         return 'Outros'
     
-    # Extrai o nome se vier como dicionário
     if isinstance(cat_raw, dict):
         cat_raw = cat_raw.get('description', cat_raw.get('name', 'UNCATEGORIZED'))
         
-    # Joga para maiúsculo e remove espaços nas pontas
     cat_str = str(cat_raw).upper().strip()
     
-    # 1. Tenta a correspondência exata primeiro (ex: "TRANSFER - PIX")
     if cat_str in TRADUCAO_CATEGORIAS:
         return TRADUCAO_CATEGORIAS[cat_str]
         
-    # 2. Tenta substituir hifens e espaços por underscores
     cat_str_under = cat_str.replace(' - ', '_').replace('-', '_').replace(' ', '_')
     if cat_str_under in TRADUCAO_CATEGORIAS:
         return TRADUCAO_CATEGORIAS[cat_str_under]
         
-    # 3. Tenta remover os underscores para espaços (caso a API mande com _)
     cat_str_espaco = cat_str.replace('_', ' ')
     if cat_str_espaco in TRADUCAO_CATEGORIAS:
         return TRADUCAO_CATEGORIAS[cat_str_espaco]
         
-    # Se falhar todas, retorna o nome mais amigável, apenas capitalizado
     return cat_str_espaco.title() if cat_str else 'Outros'
 
 def gerar_excel(df, total_in, total_out, saldo, total_cartao):
@@ -303,7 +292,6 @@ def gerar_excel(df, total_in, total_out, saldo, total_cartao):
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         wb = writer.book
 
-        # --- FORMATOS ---
         fmt_titulo    = wb.add_format({'bold': True, 'font_size': 14, 'font_color': '#FFFFFF', 'bg_color': '#0f172a', 'align': 'center', 'valign': 'vcenter'})
         fmt_header    = wb.add_format({'bold': True, 'font_color': '#FFFFFF', 'bg_color': '#0284c7', 'align': 'center', 'valign': 'vcenter', 'border': 1, 'font_size': 11})
         fmt_resumo_k  = wb.add_format({'bold': True, 'font_color': '#334155', 'bg_color': '#e0f2fe', 'border': 1, 'font_size': 11})
@@ -313,7 +301,6 @@ def gerar_excel(df, total_in, total_out, saldo, total_cartao):
         fmt_moeda_in  = wb.add_format({'num_format': 'R$ #,##0.00', 'bg_color': '#d1fae5', 'font_color': '#065f46', 'border': 1, 'font_size': 10, 'align': 'right'})
         fmt_moeda_out = wb.add_format({'num_format': 'R$ #,##0.00', 'bg_color': '#fee2e2', 'font_color': '#7f1d1d', 'border': 1, 'font_size': 10, 'align': 'right'})
 
-        # ---- ABA RESUMO ----
         ws_res = wb.add_worksheet('Resumo')
         ws_res.set_column('A:A', 28)
         ws_res.set_column('B:B', 20)
@@ -334,10 +321,9 @@ def gerar_excel(df, total_in, total_out, saldo, total_cartao):
             else:
                 ws_res.write(i, 1, val, fmt_resumo_v)
 
-        # ---- ABA EXTRATO ----
         ws = wb.add_worksheet('Extrato')
-        ws.set_column('A:A', 18)  
-        ws.set_column('B:B', 42)  
+        ws.set_column('A:A', 14)  
+        ws.set_column('B:B', 48)  
         ws.set_column('C:C', 16)  
         ws.set_column('D:D', 12)  
         ws.set_column('E:E', 22)  
@@ -380,7 +366,6 @@ def gerar_pdf(df, total_in, total_out, saldo, total_cartao):
     data_fim = df['Data'].iloc[0][:10] if not df.empty else 'N/A'
     data_inicio = df['Data'].iloc[-1][:10] if not df.empty else 'N/A'
 
-    # --- CABEÇALHO ---
     pdf.set_fill_color(15, 23, 42) 
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("helvetica", 'B', 16)
@@ -392,7 +377,6 @@ def gerar_pdf(df, total_in, total_out, saldo, total_cartao):
     pdf.cell(largura_pagina, 6, f"Gerado em {datetime.now().strftime('%d/%m/%Y às %H:%M')}  |  Período: {data_inicio} a {data_fim}", ln=True, align='C')
     pdf.ln(4)
 
-    # --- RESUMO ---
     pdf.set_font("helvetica", 'B', 10)
     pdf.set_fill_color(2, 132, 199) 
     pdf.set_text_color(255, 255, 255)
@@ -422,14 +406,14 @@ def gerar_pdf(df, total_in, total_out, saldo, total_cartao):
         pdf.ln()
     pdf.ln(4)
 
-    # --- TABELA DE TRANSAÇÕES ---
     pdf.set_font("helvetica", 'B', 10)
     pdf.set_fill_color(2, 132, 199)
     pdf.set_text_color(255, 255, 255)
     pdf.cell(largura_pagina, 8, f"  Extrato de Transações ({len(df)} registros)", ln=True, fill=True)
     pdf.ln(1)
 
-    col_widths = [32, 90, 28, 22, 42, 30] 
+    # Ajustado tamanhos para focar na descrição longa do PIX
+    col_widths = [24, 98, 28, 22, 42, 30] 
     headers = list(df.columns)
     col_widths = col_widths[:len(headers)]
     while len(col_widths) < len(headers):
@@ -699,6 +683,38 @@ connect.init();
                 if not trans:
                     st.info("Nenhuma transação encontrada para este período.")
                 else:
+                    # --- MELHORANDO A DESCRIÇÃO (PIX E TRANSFERÊNCIAS) ---
+                    for t in trans:
+                        desc_original = str(t.get('description', '')).strip()
+                        nome_extra = ""
+                        
+                        # Tenta achar nome de loja/estabelecimento
+                        if isinstance(t.get('merchant'), dict) and t['merchant'].get('name'):
+                            nome_extra = t['merchant']['name']
+                            
+                        # Tenta achar nome de quem pagou ou recebeu (PIX/Transferência)
+                        elif isinstance(t.get('paymentData'), dict):
+                            pdata = t['paymentData']
+                            amount = float(t.get('amount', 0)) if t.get('amount') is not None else 0
+                            
+                            if amount < 0: # É uma saída (pagamento p/ alguém)
+                                payee = pdata.get('payee', {})
+                                if isinstance(payee, dict) and payee.get('name'):
+                                    nome_extra = f"p/ {payee['name'].title()}"
+                                elif pdata.get('receiverName'):
+                                    nome_extra = f"p/ {pdata['receiverName'].title()}"
+                            else: # É uma entrada (recebeu de alguém)
+                                payer = pdata.get('payer', {})
+                                if isinstance(payer, dict) and payer.get('name'):
+                                    nome_extra = f"de {payer['name'].title()}"
+                                elif pdata.get('payerName'):
+                                    nome_extra = f"de {pdata['payerName'].title()}"
+                        
+                        if nome_extra:
+                            t['descricao_completa'] = f"{desc_original} ({nome_extra})"
+                        else:
+                            t['descricao_completa'] = desc_original
+
                     df = pd.DataFrame(trans)
 
                     df['date'] = pd.to_datetime(df['date']).dt.tz_localize(None)
@@ -755,7 +771,6 @@ connect.init();
                         entradas = df_f[df_f['tipo'] == 'Entrada']['valor_abs'].sum()
                         saidas = df_f[df_f['tipo'] == 'Saída']['valor_abs'].sum()
                         
-                        # NOVA MÉTRICA: Cálculo de cartão de crédito
                         total_cartao = df_f[(df_f['tipo'] == 'Saída') & (df_f['categoria'] == 'Cartão de Crédito')]['valor_abs'].sum()
                         
                         saldo = entradas - saidas
@@ -860,11 +875,14 @@ connect.init();
                         # --- EXTRATO ---
                         st.markdown("<h5 style='color: #e2e8f0;'>🧾 Extrato Detalhado</h5>", unsafe_allow_html=True)
 
-                        df_extrato = df_f[['date', 'description', 'valor_abs', 'tipo', 'categoria']].copy()
+                        # Aqui trocamos para usar a 'descricao_completa' que criamos
+                        df_extrato = df_f[['date', 'descricao_completa', 'valor_abs', 'tipo', 'categoria']].copy()
                         df_extrato = df_extrato.sort_values('date', ascending=False)
                         df_extrato.columns = ['Data', 'Descrição', 'Valor (R$)', 'Tipo', 'Categoria']
                         df_extrato['Valor (R$)'] = df_extrato['Valor (R$)'].round(2)
-                        df_extrato['Data'] = df_extrato['Data'].dt.strftime('%d/%m/%Y %H:%M')
+                        
+                        # REMOVIDO o %H:%M para que fique apenas o dia
+                        df_extrato['Data'] = df_extrato['Data'].dt.strftime('%d/%m/%Y')
 
                         st.dataframe(df_extrato, use_container_width=True, hide_index=True)
 
