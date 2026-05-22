@@ -98,16 +98,6 @@ def deletar_usuario_completo(usuario_id):
     conn.commit()
     conn.close()
 
-def salvar_conexao(usuario_id, pluggy_item_id, nome_instituicao="Nova Conta"):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute('INSERT INTO conexoes_bancarias (usuario_id, pluggy_item_id, nome_instituicao) VALUES (%s, %s, %s)', (usuario_id, pluggy_item_id, nome_instituicao))
-        conn.commit()
-        return True
-    except: return False
-    finally: conn.close()
-
 def buscar_conexoes_usuario(usuario_id):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -132,6 +122,43 @@ def gerar_connect_token():
     headers = {"accept": "application/json", "X-API-KEY": api_key}
     response_token = requests.post(url_token, headers=headers, json={}, timeout=10)
     return response_token.json().get("accessToken")
+
+def sincronizar_ultimo_banco(usuario_id):
+    url_auth = "https://api.pluggy.ai/auth"
+    try:
+        # 1. Pega o Token
+        response = requests.post(url_auth, json={"clientId": CLIENT_ID, "clientSecret": CLIENT_SECRET}, timeout=10)
+        token = response.json().get("apiKey")
+        headers = {"accept": "application/json", "X-API-KEY": token}
+        
+        # 2. Busca o último banco conectado diretamente nos servidores da Pluggy
+        items_resp = requests.get("https://api.pluggy.ai/items", headers=headers, timeout=10).json()
+        resultados = items_resp.get("results", [])
+        
+        if not resultados:
+            return False, "Nenhum banco encontrado na Pluggy."
+            
+        ultimo_item = resultados[0] # Pega o mais recente
+        item_id = ultimo_item.get("id")
+        nome_banco = ultimo_item.get("connector", {}).get("name", "Banco Desconhecido")
+        
+        # 3. Verifica se já está guardado no nosso Supabase
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM conexoes_bancarias WHERE pluggy_item_id = %s", (item_id,))
+        existe = cursor.fetchone()
+        
+        if existe:
+            conn.close()
+            return False, f"O banco {nome_banco} já se encontra sincronizado."
+            
+        # 4. Salva no banco de dados
+        cursor.execute('INSERT INTO conexoes_bancarias (usuario_id, pluggy_item_id, nome_instituicao) VALUES (%s, %s, %s)', (usuario_id, item_id, nome_banco))
+        conn.commit()
+        conn.close()
+        return True, f"✅ Banco {nome_banco} sincronizado com sucesso!"
+    except Exception as e:
+        return False, f"Erro ao comunicar com a Pluggy: {e}"
 
 @st.cache_data(ttl=3600)
 def buscar_dados_reais(item_id):
@@ -198,21 +225,6 @@ if not st.session_state['logado']:
 # ÁREA LOGADA
 # ==========================================
 else:
-    # 🚨 CORREÇÃO CRÍTICA: Captura global do parâmetro de URL logo após o login
-    if 'novo_item_id' in st.query_params:
-        novo_id = st.query_params['novo_item_id']
-        # Remove temporariamente o parâmetro para evitar loops
-        st.query_params.clear()
-        
-        # Salva no Supabase imediatamente
-        sucesso = salvar_conexao(st.session_state['usuario_id'], novo_id, "Conta Conectada")
-        if sucesso:
-            st.toast("✅ Banco de dados sincronizado com sucesso!", icon="💾")
-        else:
-            st.error("❌ Falha crítica: Não foi possível salvar a conexão no Supabase.")
-        st.rerun()
-
-    # Construção da Barra Lateral
     with st.sidebar:
         st.markdown(f"### Olá, <span style='color: #38bdf8;'>{st.session_state['usuario_nome']}</span> 👋", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
@@ -271,18 +283,32 @@ else:
                     <script>
                         const connect = new PluggyConnect({{
                             connectToken: '{token}',
-                            onSuccess: (data) => {{ window.parent.location.href = '/?novo_item_id=' + data.item.id; }},
-                            onClose: () => {{ document.getElementById('pluggy-area').innerHTML = 'Conexão encerrada.'; }}
+                            onSuccess: (data) => {{ 
+                                document.getElementById('pluggy-area').innerHTML = "<div style='text-align:center; padding: 50px; font-family: sans-serif;'><h2 style='color: #10b981;'>✅ Banco Conectado na Pluggy!</h2><p style='color: #94a3b8; font-size: 1.2rem; margin-top: 20px;'>Agora clique no botão azul <b>'✖ Fechar Janela'</b> lá em cima<br>e depois em <b>'🔄 Sincronizar'</b> para guardar.</p></div>"; 
+                            }},
+                            onClose: () => {{ document.getElementById('pluggy-area').innerHTML = "<h3 style='color: #94a3b8; text-align: center; font-family: sans-serif; padding: 50px;'>Conexão encerrada.</h3>"; }}
                         }});
                         connect.init();
                     </script>
-                """, height=600)
+                """, height=500)
 
         st.markdown("<hr style='border-color: #334155;'>", unsafe_allow_html=True)
-        st.markdown("#### Bancos Ativos")
+        
+        c_b1, c_b2 = st.columns([3, 1])
+        c_b1.markdown("#### Bancos Ativos")
+        
+        # O botão mágico de sincronização
+        if c_b2.button("🔄 Sincronizar Novo Banco", type="primary"):
+            with st.spinner("A comunicar com os servidores da Pluggy..."):
+                sucesso, msg = sincronizar_ultimo_banco(st.session_state['usuario_id'])
+                if sucesso:
+                    st.success(msg)
+                else:
+                    st.warning(msg)
+
         conexoes = buscar_conexoes_usuario(st.session_state['usuario_id'])
         if not conexoes:
-            st.info("Ainda não há nenhum banco conectado.")
+            st.info("Ainda não há nenhum banco sincronizado.")
         else:
             for i, cx in enumerate(conexoes):
                 c1, c2 = st.columns([7, 1])
