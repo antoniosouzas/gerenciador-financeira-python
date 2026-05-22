@@ -9,134 +9,147 @@ import io
 from fpdf import FPDF
 import streamlit.components.v1 as components
 import psycopg2
+from datetime import datetime
 
-st.set_page_config(page_title="Auxiliador da Iandra", layout="wide", page_icon="💼")
+# --- CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(page_title="Iandra Intelligence - Digital Bank", layout="wide", page_icon="🔹")
 
+# --- CSS ESTILO NUBANK PASTEL BLUE ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
 
     html, body, [class*="css"] {
-        font-family: 'Inter', sans-serif;
+        font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
-    /* Fundo Geral - Estilo Nova Days */
-    .stApp { background-color: #0b0e14; }
+    /* Fundo Azul Pastel Suave */
+    .stApp { 
+        background-color: #f0f5fa; 
+    }
 
-    /* Barra Lateral */
+    /* Barra Lateral Branca e Limpa */
     [data-testid="stSidebar"] { 
-        background-color: #13161f !important; 
-        border-right: 1px solid #1f232e !important;
+        background-color: #ffffff !important; 
+        border-right: 1px solid #e1e8ed !important;
+    }
+    
+    /* Perfil na Sidebar */
+    .profile-section {
+        padding: 20px 0;
+        text-align: center;
+        border-bottom: 1px solid #f0f2f6;
+        margin-bottom: 20px;
+    }
+    .profile-pic {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background-color: #e1f5fe;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        color: #039be5;
+        font-size: 30px;
+        font-weight: bold;
+        border: 2px solid #b3e5fc;
     }
 
     #MainMenu {visibility: hidden;}
     header {visibility: hidden;}
     footer {visibility: hidden;}
 
-    /* Títulos principais e Textos */
-    h1, h2, h3, h4, h5, h6, p { color: #ffffff !important; }
+    /* Títulos e Textos */
+    h1, h2, h3, h4, p { color: #2c3e50 !important; }
 
     /* ==================================================
-       NOVO VISUAL: Menu Lateral (Roxo vibrante) 
+       MENU LATERAL (Pills Azuis) 
        ================================================== */
-    div[role="radiogroup"] { gap: 10px; }
+    div[role="radiogroup"] { gap: 5px; }
     div[role="radiogroup"] > label {
         background-color: transparent !important; 
-        border-radius: 10px !important; 
-        padding: 12px 20px !important;
+        border-radius: 12px !important; 
+        padding: 10px 15px !important;
         border: none !important; 
-        cursor: pointer; 
         transition: all 0.3s ease;
     }
     div[role="radiogroup"] > label:hover { 
-        background-color: #1c202a !important; 
+        background-color: #f0f7ff !important; 
     }
     div[role="radiogroup"] > label[data-checked="true"] { 
-        background-color: #6347f2 !important; /* Roxo da imagem Nova Days */
+        background-color: #e1f5fe !important; 
     }
     div[role="radiogroup"] > label[data-checked="true"] p {
-        color: #ffffff !important; 
-        font-weight: 600 !important;
+        color: #0288d1 !important; 
+        font-weight: 700 !important;
     }
     div[role="radiogroup"] > label p {
-        color: #838a9b !important; /* Cinza claro para itens inativos */
+        color: #546e7a !important;
         font-weight: 500 !important;
-        font-size: 1.05rem !important;
     }
 
     /* ==================================================
-       NOVO VISUAL: Cartões das Métricas 
+       CARDS NUBANK (Brancos e Arredondados) 
        ================================================== */
-    [data-testid="stMetricContainer"], [data-testid="stForm"] {
-        background-color: #161922 !important; 
-        border: 1px solid #232733 !important;
-        border-radius: 16px !important; 
-        padding: 24px !important; 
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+    [data-testid="stMetricContainer"], [data-testid="stForm"], .stDataFrame {
+        background-color: #ffffff !important; 
+        border: 1px solid #e1e8ed !important;
+        border-radius: 24px !important; 
+        padding: 25px !important; 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
     }
     [data-testid="stMetricLabel"] p {
-        color: #838a9b !important; /* Texto cinza no título do cartão */
+        color: #78909c !important;
         font-size: 0.9rem !important;
-        font-weight: 500 !important;
+        font-weight: 600 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     [data-testid="stMetricValue"] div { 
-        color: #ffffff !important; /* Valores em branco destaque */
+        color: #263238 !important;
         font-weight: 700 !important;
-        font-size: 1.8rem !important;
+        font-size: 1.7rem !important;
     }
 
-    /* ==================================================
-       NOVO VISUAL: Inputs e Filtros 
-       ================================================== */
+    /*Inputs e Selects */
     .stTextInput input, .stDateInput input, [data-baseweb="select"] > div {
-        background-color: #161922 !important; 
-        color: #ffffff !important; 
-        border: 1px solid #232733 !important; 
-        border-radius: 8px !important;
-    }
-    .stTextInput input:focus, .stDateInput input:focus, [data-baseweb="select"] > div:focus-within {
-        border-color: #6347f2 !important;
-    }
-    /* Tags selecionadas no filtro */
-    span[data-baseweb="tag"] {
-        background-color: #6347f2 !important;
-        color: white !important;
-        border-radius: 6px !important;
-    }
-
-    /* Tabelas */
-    [data-testid="stDataFrame"] {
-        background-color: #161922 !important;
-        border-radius: 16px !important;
-        border: 1px solid #232733 !important;
-        padding: 10px !important;
+        background-color: #f8fafc !important; 
+        color: #2c3e50 !important; 
+        border: 1px solid #cfd8dc !important; 
+        border-radius: 12px !important;
     }
     
-    /* Botões */
+    /* Botões Nubank Style (Azul Pastel) */
     .stButton > button {
-        background-color: #161922 !important; 
-        color: #ffffff !important; 
-        border-radius: 8px !important;
-        padding: 0.5rem 1.5rem !important; 
-        font-weight: 500 !important; 
-        border: 1px solid #232733 !important;
+        background-color: #e1f5fe !important; 
+        color: #0288d1 !important; 
+        border-radius: 14px !important;
+        padding: 0.6rem 1rem !important; 
+        font-weight: 700 !important; 
+        border: none !important;
         transition: all 0.3s ease; 
         width: 100%;
+        text-transform: uppercase;
+        font-size: 0.8rem;
     }
     .stButton > button:hover { 
-        border-color: #6347f2 !important; 
-        color: #6347f2 !important; 
-    }
-    /* Botões de Destaque */
-    .stButton > button[kind="primary"] {
-        background-color: #6347f2 !important;
+        background-color: #0288d1 !important; 
         color: #ffffff !important;
-        border: none !important;
+        transform: translateY(-2px);
     }
-    .stButton > button[kind="primary"]:hover {
-        background-color: #5136d9 !important;
+    
+    /* Botão Primário */
+    .stButton > button[kind="primary"] {
+        background-color: #0288d1 !important;
+        color: #ffffff !important;
     }
-    .connect-btn button { background: linear-gradient(135deg, #6347f2 0%, #4a2ec6 100%) !important; border: none !important; height: 3.5rem !important; font-size: 1.1rem !important; color: white !important; }
+    
+    /* Tags de Filtro */
+    span[data-baseweb="tag"] {
+        background-color: #0288d1 !important;
+        color: white !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -214,8 +227,7 @@ def deletar_conexao(conexao_id):
 
 def salvar_conexao_por_item_id(usuario_id, item_id):
     item_id = item_id.strip()
-    if not item_id:
-        return False, "Item ID vazio."
+    if not item_id: return False, "Item ID vazio."
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -232,8 +244,7 @@ def salvar_conexao_por_item_id(usuario_id, item_id):
         conn.commit()
         conn.close()
         return True, f"✅ {nome_banco} conectado e salvo com sucesso!"
-    except Exception as e:
-        return False, f"Erro ao salvar conexão: {e}"
+    except Exception as e: return False, f"Erro ao salvar conexão: {e}"
 
 def sincronizar_ultimo_banco(usuario_id):
     try:
@@ -242,8 +253,7 @@ def sincronizar_ultimo_banco(usuario_id):
         headers = {"accept": "application/json", "X-API-KEY": token}
         items_resp = requests.get("https://api.pluggy.ai/items", headers=headers, timeout=10).json()
         resultados = items_resp.get("results", [])
-        if not resultados:
-            return False, "Nenhum banco encontrado na Pluggy."
+        if not resultados: return False, "Nenhum banco encontrado na Pluggy."
         ultimo_item = resultados[0]
         item_id = ultimo_item.get("id")
         nome_banco = ultimo_item.get("connector", {}).get("name", "Banco Desconhecido")
@@ -257,8 +267,7 @@ def sincronizar_ultimo_banco(usuario_id):
         conn.commit()
         conn.close()
         return True, f"✅ {nome_banco} sincronizado com sucesso!"
-    except Exception as e:
-        return False, f"Erro ao comunicar com a Pluggy: {e}"
+    except Exception as e: return False, f"Erro ao comunicar com a Pluggy: {e}"
 
 def gerar_connect_token():
     response = requests.post("https://api.pluggy.ai/auth", json={"clientId": CLIENT_ID, "clientSecret": CLIENT_SECRET}, timeout=10)
@@ -275,8 +284,7 @@ def buscar_dados_reais(item_id):
         headers = {"accept": "application/json", "X-API-KEY": token}
         contas_resp = requests.get(f"https://api.pluggy.ai/accounts?itemId={item_id}", headers=headers, timeout=10).json()
         contas = contas_resp.get("results", [])
-        if not contas:
-            return "SEM_CONTAS", []
+        if not contas: return "SEM_CONTAS", []
         
         info_contas = []
         for c in contas:
@@ -292,10 +300,8 @@ def buscar_dados_reais(item_id):
             f"https://api.pluggy.ai/transactions?accountId={conta_id}&pageSize=500",
             headers=headers, timeout=15
         ).json()
-        trans = trans_resp.get("results", [])
-        return trans, info_contas
-    except Exception as e:
-        return "ERRO_DADOS", []
+        return trans_resp.get("results", []), info_contas
+    except Exception as e: return "ERRO_DADOS", []
 
 TRADUCAO_CATEGORIAS = {
     'TRANSFER - PIX': 'Transferência PIX',
@@ -310,12 +316,10 @@ TRADUCAO_CATEGORIAS = {
     'LEISURE': 'Lazer',
     'LATE PAYMENT AND OVERDRAFT COSTS': 'Juros e Multas',
     'TAX ON FINANCIAL OPERATIONS': 'Impostos (IOF/Taxas)',
-    
     'COMPRAS': 'Compras',
     'SUPERMERCADO': 'Supermercado',
     'TRANSPORTE': 'Transporte',
     'INTERNET': 'Internet',
-
     'FOOD_AND_DRINK': 'Alimentação',
     'FOOD AND DRINK': 'Alimentação',
     'RESTAURANT': 'Restaurante',
@@ -364,38 +368,33 @@ TRADUCAO_CATEGORIAS = {
 def traduzir_categoria(cat_raw):
     if cat_raw is None:
         return 'Outros'
-    
     if isinstance(cat_raw, dict):
         cat_raw = cat_raw.get('description', cat_raw.get('name', 'UNCATEGORIZED'))
-        
     cat_str = str(cat_raw).upper().strip()
-    
     if cat_str in TRADUCAO_CATEGORIAS:
         return TRADUCAO_CATEGORIAS[cat_str]
-        
     cat_str_under = cat_str.replace(' - ', '_').replace('-', '_').replace(' ', '_')
     if cat_str_under in TRADUCAO_CATEGORIAS:
         return TRADUCAO_CATEGORIAS[cat_str_under]
-        
     cat_str_espaco = cat_str.replace('_', ' ')
     if cat_str_espaco in TRADUCAO_CATEGORIAS:
         return TRADUCAO_CATEGORIAS[cat_str_espaco]
-        
     return cat_str_espaco.title() if cat_str else 'Outros'
 
+# RESTAURADAS: FUNÇÕES INTEGRAIS DE EXPORTAÇÃO
 def gerar_excel(df, total_in, total_out, saldo, total_cartao):
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         wb = writer.book
 
-        fmt_titulo    = wb.add_format({'bold': True, 'font_size': 14, 'font_color': '#FFFFFF', 'bg_color': '#0f172a', 'align': 'center', 'valign': 'vcenter'})
-        fmt_header    = wb.add_format({'bold': True, 'font_color': '#FFFFFF', 'bg_color': '#0284c7', 'align': 'center', 'valign': 'vcenter', 'border': 1, 'font_size': 11})
-        fmt_resumo_k  = wb.add_format({'bold': True, 'font_color': '#334155', 'bg_color': '#e0f2fe', 'border': 1, 'font_size': 11})
+        fmt_titulo    = wb.add_format({'bold': True, 'font_size': 14, 'font_color': '#FFFFFF', 'bg_color': '#0288d1', 'align': 'center', 'valign': 'vcenter'})
+        fmt_header    = wb.add_format({'bold': True, 'font_color': '#FFFFFF', 'bg_color': '#039be5', 'align': 'center', 'valign': 'vcenter', 'border': 1, 'font_size': 11})
+        fmt_resumo_k  = wb.add_format({'bold': True, 'font_color': '#2c3e50', 'bg_color': '#e1f5fe', 'border': 1, 'font_size': 11})
         fmt_resumo_v  = wb.add_format({'num_format': 'R$ #,##0.00', 'border': 1, 'font_size': 11, 'align': 'right'})
-        fmt_entrada   = wb.add_format({'bg_color': '#d1fae5', 'font_color': '#065f46', 'border': 1, 'font_size': 10})
-        fmt_saida     = wb.add_format({'bg_color': '#fee2e2', 'font_color': '#7f1d1d', 'border': 1, 'font_size': 10})
-        fmt_moeda_in  = wb.add_format({'num_format': 'R$ #,##0.00', 'bg_color': '#d1fae5', 'font_color': '#065f46', 'border': 1, 'font_size': 10, 'align': 'right'})
-        fmt_moeda_out = wb.add_format({'num_format': 'R$ #,##0.00', 'bg_color': '#fee2e2', 'font_color': '#7f1d1d', 'border': 1, 'font_size': 10, 'align': 'right'})
+        fmt_entrada   = wb.add_format({'bg_color': '#e8f5e9', 'font_color': '#2e7d32', 'border': 1, 'font_size': 10})
+        fmt_saida     = wb.add_format({'bg_color': '#ffebee', 'font_color': '#c62828', 'border': 1, 'font_size': 10})
+        fmt_moeda_in  = wb.add_format({'num_format': 'R$ #,##0.00', 'bg_color': '#e8f5e9', 'font_color': '#2e7d32', 'border': 1, 'font_size': 10, 'align': 'right'})
+        fmt_moeda_out = wb.add_format({'num_format': 'R$ #,##0.00', 'bg_color': '#ffebee', 'font_color': '#c62828', 'border': 1, 'font_size': 10, 'align': 'right'})
 
         ws_res = wb.add_worksheet('Resumo')
         ws_res.set_column('A:A', 28)
@@ -462,7 +461,7 @@ def gerar_pdf(df, total_in, total_out, saldo, total_cartao):
     data_fim = df['Data'].iloc[0][:10] if not df.empty else 'N/A'
     data_inicio = df['Data'].iloc[-1][:10] if not df.empty else 'N/A'
 
-    pdf.set_fill_color(15, 23, 42) 
+    pdf.set_fill_color(2, 136, 209) # Azul Nubank Pastel
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("helvetica", 'B', 16)
     pdf.cell(largura_pagina, 12, "Relatorio Financeiro - Auxiliador da Iandra", ln=False, align='C', fill=True)
@@ -474,7 +473,7 @@ def gerar_pdf(df, total_in, total_out, saldo, total_cartao):
     pdf.ln(4)
 
     pdf.set_font("helvetica", 'B', 10)
-    pdf.set_fill_color(2, 132, 199) 
+    pdf.set_fill_color(3, 169, 244) 
     pdf.set_text_color(255, 255, 255)
     pdf.cell(largura_pagina, 8, "  Resumo do Período", ln=True, fill=True)
     pdf.ln(1)
@@ -483,7 +482,7 @@ def gerar_pdf(df, total_in, total_out, saldo, total_cartao):
         ("Total de Entradas",    f"R$ {total_in:,.2f}",  (209, 250, 229), (6, 95, 70)),
         ("Total de Saídas",      f"R$ {total_out:,.2f}", (254, 226, 226), (127, 29, 29)),
         ("Cartão de Crédito",    f"R$ {total_cartao:,.2f}", (254, 215, 170), (154, 52, 18)),
-        ("Saldo Líquido",        f"R$ {saldo:,.2f}",     (224, 242, 254), (12, 74, 110)),
+        ("Saldo Líquido",        f"R$ {saldo:,.2f}",     (225, 245, 254), (2, 136, 209)),
         ("Transações",           f"{len(df)}",           (248, 250, 252), (51, 65, 85)),
     ]
     
@@ -503,7 +502,7 @@ def gerar_pdf(df, total_in, total_out, saldo, total_cartao):
     pdf.ln(4)
 
     pdf.set_font("helvetica", 'B', 10)
-    pdf.set_fill_color(2, 132, 199)
+    pdf.set_fill_color(3, 169, 244)
     pdf.set_text_color(255, 255, 255)
     pdf.cell(largura_pagina, 8, f"  Extrato de Transações ({len(df)} registros)", ln=True, fill=True)
     pdf.ln(1)
@@ -515,42 +514,42 @@ def gerar_pdf(df, total_in, total_out, saldo, total_cartao):
         col_widths.append(30)
 
     pdf.set_font("helvetica", 'B', 8)
-    pdf.set_fill_color(30, 41, 59)
+    pdf.set_fill_color(38, 50, 56)
     pdf.set_text_color(226, 232, 240)
-    pdf.set_draw_color(51, 65, 85)
+    pdf.set_draw_color(207, 216, 220)
     for h, w in zip(headers, col_widths):
         pdf.cell(w, 7, f" {h}", border=1, fill=True)
     pdf.ln()
 
     pdf.set_font("helvetica", '', 8)
-    pdf.set_draw_color(203, 213, 225)
+    pdf.set_draw_color(207, 216, 220)
 
     for i, row in enumerate(df.itertuples(index=False)):
         tipo = str(getattr(row, 'Tipo', '')).strip()
         is_entrada = tipo == 'Entrada'
 
         if is_entrada:
-            pdf.set_fill_color(209, 250, 229); pdf.set_text_color(6, 95, 70)
+            pdf.set_fill_color(200, 230, 201); pdf.set_text_color(46, 125, 50)
         elif i % 2 == 0:
-            pdf.set_fill_color(248, 250, 252); pdf.set_text_color(30, 41, 59)
+            pdf.set_fill_color(248, 250, 252); pdf.set_text_color(38, 50, 56)
         else:
-            pdf.set_fill_color(241, 245, 249); pdf.set_text_color(30, 41, 59)
+            pdf.set_fill_color(241, 245, 249); pdf.set_text_color(38, 50, 56)
 
         if pdf.get_y() > 185:
             pdf.add_page()
             pdf.set_font("helvetica", 'B', 8)
-            pdf.set_fill_color(30, 41, 59)
+            pdf.set_fill_color(38, 50, 56)
             pdf.set_text_color(226, 232, 240)
             for h, w in zip(headers, col_widths):
                 pdf.cell(w, 7, f" {h}", border=1, fill=True)
             pdf.ln()
             pdf.set_font("helvetica", '', 8)
             if is_entrada:
-                pdf.set_fill_color(209, 250, 229); pdf.set_text_color(6, 95, 70)
+                pdf.set_fill_color(200, 230, 201); pdf.set_text_color(46, 125, 50)
             elif i % 2 == 0:
-                pdf.set_fill_color(248, 250, 252); pdf.set_text_color(30, 41, 59)
+                pdf.set_fill_color(248, 250, 252); pdf.set_text_color(38, 50, 56)
             else:
-                pdf.set_fill_color(241, 245, 249); pdf.set_text_color(30, 41, 59)
+                pdf.set_fill_color(241, 245, 249); pdf.set_text_color(38, 50, 56)
 
         valores = list(row)
         for val, w in zip(valores, col_widths):
@@ -570,20 +569,20 @@ def gerar_pdf(df, total_in, total_out, saldo, total_cartao):
     return bytes(pdf.output())
 
 # ==========================================
-# LOGIN
+# LOGIN (ESTILO NUBANK CLEAN)
 # ==========================================
 if not st.session_state['logado']:
     col1, col2, col3 = st.columns([1, 1.5, 1])
     with col2:
         st.markdown("<div style='height: 60px;'></div>", unsafe_allow_html=True)
-        st.markdown("<h2 style='text-align: center; color: #ffffff; font-weight: 700;'>🤖 AUXILIADOR FINANCEIRO PARA A IANDRA</h2>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #838a9b; font-size: 1.1rem;'>Gestão financeira inteligente, simplificada e elegante.</p>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; color: #0288d1 !important; font-weight: 700;'>IANDRA INTELLIGENCE</h2>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: #78909c !important; font-size: 1.1rem;'>Acesse sua conta digital corporativa.</p>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         with st.form("login_form"):
-            email = st.text_input("E-mail")
-            senha = st.text_input("Palavra-passe", type="password")
+            email = st.text_input("E-mail ou CPF")
+            senha = st.text_input("Senha", type="password")
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.form_submit_button("Entrar no Painel"):
+            if st.form_submit_button("ENTRAR NA CONTA", type="primary"):
                 if email == "admin" and senha == "admin":
                     st.session_state.update({'logado': True, 'usuario_id': 999, 'usuario_nome': "Administrador Mestre", 'is_admin': True})
                     st.rerun()
@@ -600,10 +599,15 @@ if not st.session_state['logado']:
 # ==========================================
 else:
     with st.sidebar:
-        st.markdown(f"### Olá, <span style='color: #6347f2;'>{st.session_state['usuario_nome']}</span> 👋", unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(f"""
+            <div class="profile-section">
+                <div class="profile-pic">{st.session_state['usuario_nome'][0].upper()}</div>
+                <div style="font-weight: 700; color: #263238;">Olá, {st.session_state['usuario_nome']}</div>
+                <div style="font-size: 0.8rem; color: #78909c;">Painel Executivo</div>
+            </div>
+        """, unsafe_allow_html=True)
         
-        if st.button("🔄 Forçar Atualização de Dados"):
+        if st.button("🔄 ATUALIZAR DADOS"):
             st.cache_data.clear()
             st.rerun()
             
@@ -614,14 +618,14 @@ else:
             ["📊 Dashboard", "🔗 Gerir Bancos", "⚙️ Admin"] if st.session_state['is_admin']
             else ["📊 Dashboard", "🔗 Gerir Bancos"]
         )
-        st.markdown("<div style='height: 200px;'></div>", unsafe_allow_html=True)
-        if st.button("🚪 Sair do Sistema"):
+        st.markdown("<div style='height: 100px;'></div>", unsafe_allow_html=True)
+        if st.button("🚪 Sair da Conta"):
             st.session_state.update({'logado': False, 'is_admin': False})
             st.rerun()
 
     # --- ADMIN ---
     if menu == "⚙️ Admin":
-        st.markdown("<h2 style='color: #e2e8f0;'>⚙️ Painel de Controle</h2>", unsafe_allow_html=True)
+        st.markdown("<h2>⚙️ Painel de Controle</h2>", unsafe_allow_html=True)
         tab_add, tab_lista = st.tabs(["➕ Novo Cliente", "👥 Gerir Clientes"])
         with tab_add:
             with st.form("add_user"):
@@ -629,7 +633,7 @@ else:
                 e = st.text_input("E-mail")
                 p = st.text_input("Senha", type="password")
                 adm = st.checkbox("Dar acesso de Administrador?")
-                if st.form_submit_button("Criar Conta do Cliente"):
+                if st.form_submit_button("Criar Conta do Cliente", type="primary"):
                     if n and e and p:
                         if registrar_usuario(n, e, p, adm): st.success(f"Cliente {n} criado!")
                         else: st.error("Erro ao criar. O e-mail já existe?")
@@ -643,14 +647,14 @@ else:
 
     # --- GERIR BANCOS ---
     elif menu == "🔗 Gerir Bancos":
-        st.markdown("<h2 style='color: #e2e8f0;'>🔗 Conexões Bancárias</h2>", unsafe_allow_html=True)
+        st.markdown("<h2>🔗 Conexões Bancárias</h2>", unsafe_allow_html=True)
 
         col_txt, col_btn = st.columns([2, 1])
         with col_txt:
             st.write("Conecte as contas bancárias para sincronizar as transações automaticamente.")
         with col_btn:
             st.markdown('<div class="connect-btn">', unsafe_allow_html=True)
-            if st.button("➕ Conectar Novo Banco"):
+            if st.button("➕ Conectar Novo Banco", type="primary"):
                 st.session_state['abrir_pluggy'] = True
                 st.session_state['pluggy_sucesso'] = False
                 st.session_state['pluggy_item_id'] = ""
@@ -670,22 +674,22 @@ else:
 body {{ background: transparent; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }}
 #widget-area {{ min-height: 460px; }}
 #success-box {{
-  display: none; background: #0f2218; border: 1px solid #10b981;
+  display: none; background: #e8f5e9; border: 1px solid #2e7d32;
   border-radius: 12px; padding: 32px 24px; margin: 16px 0; text-align: center;
 }}
-#success-box h2 {{ color: #10b981; font-size: 1.3rem; margin-bottom: 8px; }}
-#success-box p  {{ color: #94a3b8; font-size: 0.95rem; margin-bottom: 20px; }}
+#success-box h2 {{ color: #2e7d32; font-size: 1.3rem; margin-bottom: 8px; }}
+#success-box p  {{ color: #546e7a; font-size: 0.95rem; margin-bottom: 20px; }}
 #id-display {{
-  background: #1e293b; border: 1px solid #334155; border-radius: 8px;
-  padding: 14px 16px; font-family: monospace; font-size: 0.9rem; color: #38bdf8;
+  background: #ffffff; border: 1px solid #cfd8dc; border-radius: 8px;
+  padding: 14px 16px; font-family: monospace; font-size: 0.9rem; color: #0288d1;
   word-break: break-all; margin-bottom: 16px; text-align: left;
 }}
 #copy-btn {{
-  background: #0284c7; color: white; border: none; border-radius: 20px;
+  background: #0288d1; color: white; border: none; border-radius: 20px;
   padding: 10px 28px; font-size: 0.95rem; cursor: pointer;
 }}
-#copy-btn:hover {{ background: #0369a1; }}
-#copy-hint {{ color: #10b981; font-size: 0.85rem; margin-top: 10px; display: none; }}
+#copy-btn:hover {{ background: #0277bd; }}
+#copy-hint {{ color: #2e7d32; font-size: 0.85rem; margin-top: 10px; display: none; }}
 </style></head><body>
 <div id="widget-area"></div>
 <div id="success-box">
@@ -713,17 +717,17 @@ var connect = new PluggyConnect({{
     document.getElementById('success-box').style.display = 'block';
   }},
   onClose: function() {{
-    document.getElementById('widget-area').innerHTML = '<p style="color:#94a3b8;text-align:center;padding:60px;">Conexão encerrada.</p>';
+    document.getElementById('widget-area').innerHTML = '<p style="color:#546e7a;text-align:center;padding:60px;">Conexão encerrada.</p>';
   }},
   onError: function(err) {{
-    document.getElementById('widget-area').innerHTML = '<p style="color:#f43f5e;text-align:center;padding:60px;">Erro na conexão. Tente novamente.</p>';
+    document.getElementById('widget-area').innerHTML = '<p style="color:#c62828;text-align:center;padding:60px;">Erro na conexão. Tente novamente.</p>';
   }}
 }});
 connect.init();
 </script></body></html>
 """, height=540)
 
-                st.markdown("<p style='color:#94a3b8; font-size:0.9rem; margin-top:8px;'>👆 Após conectar o banco acima, copie o ID exibido e cole aqui:</p>", unsafe_allow_html=True)
+                st.markdown("<p style='color:#78909c; font-size:0.9rem; margin-top:8px;'>👆 Após conectar o banco acima, copie o ID exibido e cole aqui:</p>", unsafe_allow_html=True)
                 item_id_input = st.text_input("ID da Conexão", placeholder="Cole aqui o ID copiado do widget acima...", label_visibility="collapsed")
                 if st.button("💾 Salvar Conexão", type="primary", disabled=not item_id_input.strip()):
                     with st.spinner("Salvando no Supabase..."):
@@ -738,7 +742,7 @@ connect.init();
         if st.session_state['pluggy_sucesso']:
             st.success("🎉 Banco conectado! Acesse o **Dashboard** para ver seus dados.")
 
-        st.markdown("<hr style='border-color: #334155;'>", unsafe_allow_html=True)
+        st.markdown("<hr style='border-color: #e1e8ed;'>", unsafe_allow_html=True)
         c_b1, c_b2 = st.columns([3, 1])
         c_b1.markdown("#### Bancos Ativos")
         if c_b2.button("🔄 Sincronizar Novo Banco", type="primary"):
@@ -763,7 +767,7 @@ connect.init();
 
     # --- DASHBOARD ---
     elif menu == "📊 Dashboard":
-        st.markdown("<h2 style='color: #e2e8f0;'>📊 Resumo Financeiro</h2>", unsafe_allow_html=True)
+        st.markdown("<h2>📊 Resumo Financeiro</h2>", unsafe_allow_html=True)
 
         conexoes = buscar_conexoes_usuario(st.session_state['usuario_id'])
         if not conexoes:
@@ -840,7 +844,7 @@ connect.init();
                     df['valor_abs'] = df['amount'].abs()
 
                     # --- FILTROS NA SIDEBAR ---
-                    st.sidebar.markdown("<hr style='border-color: #334155;'>", unsafe_allow_html=True)
+                    st.sidebar.markdown("<hr style='border-color: #e1e8ed;'>", unsafe_allow_html=True)
                     st.sidebar.markdown("#### 🔍 Filtros")
 
                     d1 = st.sidebar.date_input("Data de Início", df['date'].min().date())
@@ -874,11 +878,10 @@ connect.init();
                     if df_f.empty:
                         st.warning("Nenhuma transação encontrada com os filtros selecionados.")
                     else:
+                        # --- MÉTRICAS ---
                         entradas = df_f[df_f['tipo'] == 'Entrada']['valor_abs'].sum()
                         saidas = df_f[df_f['tipo'] == 'Saída']['valor_abs'].sum()
-                        
                         total_cartao = df_f[(df_f['tipo'] == 'Saída') & (df_f['categoria'] == 'Cartão de Crédito')]['valor_abs'].sum()
-                        
                         saldo = entradas - saidas
                         total_trans = len(df_f)
 
@@ -890,7 +893,7 @@ connect.init();
 
                         if info_contas:
                             st.markdown("<br>", unsafe_allow_html=True)
-                            st.markdown("<h5 style='color:#94a3b8;'>💳 Saldo Atual nas Contas</h5>", unsafe_allow_html=True)
+                            st.markdown("<h5>💳 Saldo Atual nas Contas</h5>", unsafe_allow_html=True)
                             cols_contas = st.columns(len(info_contas))
                             for idx, conta in enumerate(info_contas):
                                 cols_contas[idx].metric(
@@ -900,13 +903,13 @@ connect.init();
 
                         st.markdown("<br>", unsafe_allow_html=True)
 
-                        # Cores adaptadas ao novo visual Fintech Nova Days
-                        grafico_cores = ['#6347f2', '#00cec9', '#fd79a8', '#0984e3', '#00b894', '#d63031', '#fdcb6e', '#e17055', '#b2bec3']
+                        # Cores vibrantes com base no design claro
+                        grafico_cores = ['#0288d1', '#26a69a', '#ef5350', '#ffa726', '#ab47bc', '#ec407a', '#7e57c2', '#5c6bc0', '#8d6e63', '#78909c']
 
                         col_g1, col_g2 = st.columns(2)
 
                         with col_g1:
-                            st.markdown("<h5 style='color: #e2e8f0;'>💸 Gastos por Categoria</h5>", unsafe_allow_html=True)
+                            st.markdown("<h5>💸 Gastos por Categoria</h5>", unsafe_allow_html=True)
                             df_saidas = df_f[df_f['tipo'] == 'Saída']
                             if not df_saidas.empty:
                                 cat_group = df_saidas.groupby('categoria')['valor_abs'].sum().reset_index()
@@ -922,17 +925,17 @@ connect.init();
                                 fig_p.update_layout(
                                     margin=dict(t=10, b=10, l=10, r=10),
                                     showlegend=True,
-                                    legend=dict(font=dict(color='#838a9b'), bgcolor='rgba(0,0,0,0)'),
+                                    legend=dict(font=dict(color='#546e7a'), bgcolor='rgba(0,0,0,0)'),
                                     paper_bgcolor='rgba(0,0,0,0)',
                                     plot_bgcolor='rgba(0,0,0,0)',
-                                    font=dict(color='#e2e8f0')
+                                    font=dict(color='#2c3e50')
                                 )
                                 st.plotly_chart(fig_p, use_container_width=True)
                             else:
                                 st.info("Nenhuma saída no período filtrado.")
 
                         with col_g2:
-                            st.markdown("<h5 style='color: #e2e8f0;'>📈 Evolução do Caixa</h5>", unsafe_allow_html=True)
+                            st.markdown("<h5>📈 Evolução do Caixa</h5>", unsafe_allow_html=True)
                             df_day = df_f.copy()
                             df_day['valor_sinal'] = df_day.apply(
                                 lambda r: r['valor_abs'] if r['tipo'] == 'Entrada' else -r['valor_abs'], axis=1
@@ -944,7 +947,7 @@ connect.init();
                             fig_l = px.area(
                                 df_day_grp, x='date', y='saldo_acumulado',
                                 line_shape='spline',
-                                color_discrete_sequence=['#6347f2'],
+                                color_discrete_sequence=['#0288d1'],
                                 labels={'saldo_acumulado': 'Saldo Acumulado', 'date': 'Data'}
                             )
                             fig_l.update_layout(
@@ -952,35 +955,35 @@ connect.init();
                                 xaxis_title=None, yaxis_title="R$",
                                 paper_bgcolor='rgba(0,0,0,0)',
                                 plot_bgcolor='rgba(0,0,0,0)',
-                                font=dict(color='#838a9b'),
-                                yaxis=dict(gridcolor='#232733', tickprefix='R$ ')
+                                font=dict(color='#546e7a'),
+                                yaxis=dict(gridcolor='#e1e8ed', tickprefix='R$ ')
                             )
                             fig_l.update_xaxes(showgrid=False)
                             st.plotly_chart(fig_l, use_container_width=True)
 
-                        st.markdown("<h5 style='color: #e2e8f0;'>📊 Entradas vs Saídas por Mês</h5>", unsafe_allow_html=True)
+                        st.markdown("<h5>📊 Entradas vs Saídas por Mês</h5>", unsafe_allow_html=True)
                         df_mensal = df_f.copy()
                         df_mensal['mes'] = df_mensal['date'].dt.to_period('M').astype(str)
                         df_mensal_grp = df_mensal.groupby(['mes', 'tipo'])['valor_abs'].sum().reset_index()
                         fig_bar = px.bar(
                             df_mensal_grp, x='mes', y='valor_abs', color='tipo',
                             barmode='group',
-                            color_discrete_map={'Entrada': '#00b894', 'Saída': '#d63031'},
+                            color_discrete_map={'Entrada': '#26a69a', 'Saída': '#ef5350'},
                             labels={'valor_abs': 'Valor (R$)', 'mes': 'Mês', 'tipo': 'Tipo'}
                         )
                         fig_bar.update_layout(
                             margin=dict(t=10, b=10, l=10, r=10),
                             paper_bgcolor='rgba(0,0,0,0)',
                             plot_bgcolor='rgba(0,0,0,0)',
-                            font=dict(color='#838a9b'),
-                            legend=dict(font=dict(color='#838a9b'), bgcolor='rgba(0,0,0,0)'),
-                            yaxis=dict(gridcolor='#232733', tickprefix='R$ '),
+                            font=dict(color='#546e7a'),
+                            legend=dict(font=dict(color='#546e7a'), bgcolor='rgba(0,0,0,0)'),
+                            yaxis=dict(gridcolor='#e1e8ed', tickprefix='R$ '),
                             xaxis=dict(showgrid=False)
                         )
                         st.plotly_chart(fig_bar, use_container_width=True)
 
                         # --- EXTRATO ---
-                        st.markdown("<h5 style='color: #e2e8f0;'>🧾 Extrato Detalhado</h5>", unsafe_allow_html=True)
+                        st.markdown("<h5>🧾 Extrato Detalhado</h5>", unsafe_allow_html=True)
 
                         df_extrato = df_f[['date', 'descricao_completa', 'valor_abs', 'tipo', 'categoria']].copy()
                         df_extrato = df_extrato.sort_values('date', ascending=False)
@@ -995,19 +998,17 @@ connect.init();
                         c_ex1.download_button("📊 Baixar Excel", gerar_excel(df_export, entradas, saidas, saldo, total_cartao), "extrato.xlsx")
                         c_ex2.download_button("📄 Baixar PDF", gerar_pdf(df_export, entradas, saidas, saldo, total_cartao), "relatorio.pdf")
 
-                        # --- MODO DESENVOLVEDOR (VER DADOS PUROS) ---
+                        # --- MODO DESENVOLVEDOR ---
                         st.markdown("---")
                         with st.expander("🛠️ Modo Desenvolvedor: Inspecionar Dados do Banco"):
-                            st.info("Veja abaixo exatamente como o banco está enviando os dados de PIX para o sistema. Se o nome da pessoa/empresa não estiver escrito em nenhum lugar dentro das chaves `{ }` abaixo, significa que o banco ocultou essa informação de propósito na integração.")
-                            
+                            st.info("Veja abaixo como o banco envia os dados puros.")
                             pix_brutos = []
                             for t in trans:
                                 desc = str(t.get('description', '')).lower()
                                 raw_desc = str(t.get('descriptionRaw', '')).lower()
                                 if 'pix' in desc or 'pix' in raw_desc:
                                     pix_brutos.append(t)
-                                    
                             if pix_brutos:
                                 st.json(pix_brutos[:5]) 
                             else:
-                                st.warning("Nenhuma transação com a palavra PIX encontrada nos dados puros.")
+                                st.warning("Nenhuma transação PIX encontrada nos dados puros.")
