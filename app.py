@@ -12,58 +12,95 @@ from fpdf import FPDF
 import streamlit.components.v1 as components
 
 # 1. CONFIGURAÇÃO DA PÁGINA E ESTILO CSS
-st.set_page_config(page_title="Fintech Pro | Dashboard", layout="wide", page_icon="💰")
+st.set_page_config(page_title="Auxiliador da Iandra", layout="wide", page_icon="💼")
 
-# Injeção de CSS para transformar a interface
+# Injeção de CSS para um Dark Mode Elegante e Suave
 st.markdown("""
     <style>
-    /* Cores Globais e Fundo */
-    .main { background-color: #f8f9fa; }
+    /* Fundo Geral da Aplicação */
+    .stApp {
+        background-color: #0f172a;
+    }
     
-    /* Estilização de Botões */
+    /* Barra Lateral (Sidebar) */
+    [data-testid="stSidebar"] {
+        background-color: #1e293b !important;
+        border-right: 1px solid #334155;
+    }
+    
+    /* Esconder menu padrão do Streamlit */
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+
+    /* Formulários e Cards de Métricas (Removendo o branco estourado) */
+    [data-testid="stForm"], [data-testid="stMetricContainer"] {
+        background-color: #1e293b !important;
+        border: 1px solid #334155 !important;
+        border-radius: 16px !important;
+        padding: 20px !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important;
+    }
+    
+    /* Textos das Métricas */
+    [data-testid="stMetricValue"] {
+        color: #e2e8f0 !important;
+    }
+
+    /* Estilização dos Botões Padrão */
     div.stButton > button:first-child {
-        background-color: #0066ff;
-        color: white;
-        border-radius: 12px;
-        padding: 0.6rem 2rem;
-        font-weight: 600;
-        border: none;
-        box-shadow: 0 4px 6px rgba(0, 102, 255, 0.2);
+        background-color: #0284c7 !important;
+        color: #ffffff !important;
+        border-radius: 20px !important;
+        padding: 0.5rem 2rem !important;
+        font-weight: 500 !important;
+        border: 1px solid #0369a1 !important;
         transition: all 0.3s ease;
         width: 100%;
     }
     div.stButton > button:first-child:hover {
-        background-color: #0052cc;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(0, 102, 255, 0.3);
+        background-color: #0369a1 !important;
+        border-color: #0ea5e9 !important;
+        box-shadow: 0 0 10px rgba(14, 165, 233, 0.2) !important;
     }
     
-    /* Botão de Destaque (Conectar) */
+    /* Botão de Destaque (Conectar Banco) */
     .connect-btn button {
-        background: linear-gradient(135deg, #0066ff 0%, #00d1b2 100%) !important;
-        font-size: 1.2rem !important;
-        height: 4rem !important;
+        background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%) !important;
+        border: none !important;
+        height: 3.5rem !important;
+        font-size: 1.1rem !important;
     }
 
-    /* Estilização de Cards e Containers */
-    [data-testid="stMetricContainer"] {
-        background-color: white;
-        border-radius: 15px;
-        padding: 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        border: 1px solid #efefef;
+    /* Transformando o Menu Lateral (Radio) em botões arredondados (Pills) */
+    div[role="radiogroup"] {
+        gap: 12px;
     }
-    
-    /* Títulos e Textos */
-    h1, h2, h3 { color: #1e293b; font-family: 'Inter', sans-serif; }
-    .stMarkdown p { color: #64748b; }
-    
-    /* Sidebar */
-    [data-testid="stSidebar"] { background-color: #ffffff; border-right: 1px solid #e2e8f0; }
-    
-    /* Esconder o menu padrão do Streamlit */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
+    div[role="radiogroup"] > label {
+        background-color: #0f172a !important;
+        border-radius: 25px !important;
+        padding: 12px 20px !important;
+        border: 1px solid #334155 !important;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    div[role="radiogroup"] > label:hover {
+        border-color: #0ea5e9 !important;
+        background-color: #162032 !important;
+    }
+    /* Estilo quando o menu está selecionado */
+    div[role="radiogroup"] > label[data-checked="true"] {
+        background-color: #0ea5e9 !important;
+        border-color: #0ea5e9 !important;
+    }
+
+    /* Inputs e Selects (Filtros) */
+    .stTextInput input, .stDateInput input, [data-baseweb="select"] > div {
+        background-color: #0f172a !important;
+        color: #e2e8f0 !important;
+        border: 1px solid #334155 !important;
+        border-radius: 10px !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -191,22 +228,22 @@ def gerar_pdf(df, total_in, total_out, saldo):
 if not st.session_state['logado']:
     col1, col2, col3 = st.columns([1, 1.5, 1])
     with col2:
-        st.markdown("<div style='height: 80px;'></div>", unsafe_allow_html=True)
-        st.markdown("<h1 style='text-align: center; color: #0066ff;'>Fintech Pro</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center;'>Gestão financeira inteligente para o seu negócio.</p>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 60px;'></div>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; color: #38bdf8; font-weight: 700;'>🤖 AUXILIADOR FINANCEIRO PARA A IANDRA</h2>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: #94a3b8; font-size: 1.1rem;'>Gestão financeira inteligente, simplificada e elegante.</p>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
         
-        with st.container():
-            st.markdown("<div style='background-color: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);'>", unsafe_allow_html=True)
-            with st.form("login_form"):
-                email = st.text_input("E-mail")
-                senha = st.text_input("Palavra-passe", type="password")
-                if st.form_submit_button("Entrar no Dashboard"):
-                    usuario = verificar_login(email, senha)
-                    if usuario:
-                        st.session_state['logado'], st.session_state['usuario_id'], st.session_state['usuario_nome'], st.session_state['is_admin'] = True, usuario[0], usuario[1], bool(usuario[2])
-                        st.rerun()
-                    else: st.error("Acesso negado. Verifique os seus dados.")
-            st.markdown("</div>", unsafe_allow_html=True)
+        # O formulário agora usa o CSS nativo sem a div branca estourada
+        with st.form("login_form"):
+            email = st.text_input("E-mail")
+            senha = st.text_input("Palavra-passe", type="password")
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.form_submit_button("Entrar no Painel"):
+                usuario = verificar_login(email, senha)
+                if usuario:
+                    st.session_state['logado'], st.session_state['usuario_id'], st.session_state['usuario_nome'], st.session_state['is_admin'] = True, usuario[0], usuario[1], bool(usuario[2])
+                    st.rerun()
+                else: st.error("Acesso negado. Verifique os seus dados.")
 
 # ==========================================
 # ÁREA LOGADA
@@ -214,7 +251,7 @@ if not st.session_state['logado']:
 else:
     # Sidebar Estilizada
     with st.sidebar:
-        st.markdown(f"### Bem-vindo, <br><span style='color: #0066ff;'>{st.session_state['usuario_nome']}</span>", unsafe_allow_html=True)
+        st.markdown(f"### Olá, <span style='color: #38bdf8;'>{st.session_state['usuario_nome']}</span> 👋", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         
         menu = st.radio("Navegação", ["📊 Dashboard", "🔗 Gerir Bancos", "⚙️ Admin"] if st.session_state['is_admin'] else ["📊 Dashboard", "🔗 Gerir Bancos"])
@@ -226,7 +263,7 @@ else:
 
     # --- TELA: ADMIN ---
     if menu == "⚙️ Admin":
-        st.title("⚙️ Painel de Controle")
+        st.markdown("<h2 style='color: #e2e8f0;'>⚙️ Painel de Controle</h2>", unsafe_allow_html=True)
         tab_add, tab_lista = st.tabs(["➕ Novo Cliente", "👥 Gerir Clientes"])
         
         with tab_add:
@@ -240,20 +277,19 @@ else:
         
         with tab_lista:
             for u in buscar_todos_usuarios():
-                with st.expander(f"{u[1]} ({u[2]})"):
+                with st.expander(f"👤 {u[1]} ({u[2]})"):
                     if u[0] != st.session_state['usuario_id']:
-                        if st.button("Eliminar", key=f"del_{u[0]}"):
+                        if st.button("🗑 Eliminar Conta", key=f"del_{u[0]}"):
                             deletar_usuario_completo(u[0])
                             st.rerun()
 
     # --- TELA: GERIR BANCOS ---
     elif menu == "🔗 Gerir Bancos":
-        st.title("🔗 Conexões Bancárias")
+        st.markdown("<h2 style='color: #e2e8f0;'>🔗 Conexões Bancárias</h2>", unsafe_allow_html=True)
         
-        # Header de Conexão com Botão Estilizado
         col_txt, col_btn = st.columns([2, 1])
         with col_txt:
-            st.write("Conecte os seus bancos para sincronizar as transações em tempo real.")
+            st.write("Conecte as contas bancárias para sincronizar as transações automaticamente.")
         with col_btn:
             st.markdown('<div class="connect-btn">', unsafe_allow_html=True)
             if st.button("➕ Conectar Novo Banco"):
@@ -263,7 +299,7 @@ else:
         if st.session_state['abrir_pluggy']:
             token = gerar_connect_token()
             if token:
-                if st.button("✖ Fechar Janela de Conexão"): 
+                if st.button("✖ Fechar Janela"): 
                     st.session_state['abrir_pluggy'] = False
                     st.rerun()
                 components.html(f"""
@@ -279,7 +315,8 @@ else:
                     </script>
                 """, height=600)
 
-        st.markdown("### Bancos Ativos")
+        st.markdown("<hr style='border-color: #334155;'>", unsafe_allow_html=True)
+        st.markdown("#### Bancos Ativos")
         for i, cx in enumerate(buscar_conexoes_usuario(st.session_state['usuario_id'])):
             c1, c2 = st.columns([7, 1])
             c1.info(f"🏦 {cx[2]} | Adicionado em {cx[3][:10]}")
@@ -289,7 +326,7 @@ else:
 
     # --- TELA: DASHBOARD ---
     elif menu == "📊 Dashboard":
-        st.title("📊 Seu Resumo Financeiro")
+        st.markdown("<h2 style='color: #e2e8f0;'>📊 Resumo Financeiro</h2>", unsafe_allow_html=True)
         
         conexoes = buscar_conexoes_usuario(st.session_state['usuario_id'])
         if not conexoes:
@@ -298,7 +335,7 @@ else:
             bancos_dict = {f"{c[2]} ({c[1][:5]})": c[1] for c in conexoes}
             sel_banco = st.selectbox("Selecione a conta para visualizar:", list(bancos_dict.keys()))
             
-            with st.spinner("Sincronizando dados..."):
+            with st.spinner("Sincronizando dados com o banco..."):
                 dados = buscar_dados_reais(bancos_dict[sel_banco])
                 
             if isinstance(dados, list):
@@ -307,44 +344,49 @@ else:
                 df['amount'] = pd.to_numeric(df['amount'])
                 df['category'] = df['category'].apply(lambda x: TRADUCAO_CATEGORIAS.get(str(x).upper(), "Outros"))
 
-                # Filtros de Data Modernos
-                st.sidebar.markdown("---")
-                d1 = st.sidebar.date_input("Início", df['date'].min())
-                d2 = st.sidebar.date_input("Fim", df['date'].max())
+                # Filtros de Data
+                st.sidebar.markdown("<hr style='border-color: #334155;'>", unsafe_allow_html=True)
+                st.sidebar.markdown("#### Filtros de Período")
+                d1 = st.sidebar.date_input("Data de Início", df['date'].min())
+                d2 = st.sidebar.date_input("Data de Fim", df['date'].max())
                 
                 df_f = df[(df['date'].dt.date >= d1) & (df['date'].dt.date <= d2)]
                 in_v = df_f[df_f['amount'] > 0]['amount'].sum()
                 out_v = df_f[df_f['amount'] < 0]['amount'].sum()
                 saldo = in_v + out_v
 
-                # Métricas em Cards
+                # Métricas em Cards Escuros
                 m1, m2, m3 = st.columns(3)
-                m1.metric("Entradas", f"R$ {in_v:,.2f}", delta_color="normal")
-                m2.metric("Saídas", f"R$ {abs(out_v):,.2f}", delta_color="inverse")
-                m3.metric("Saldo Líquido", f"R$ {saldo:,.2f}")
+                m1.metric("⬇️ Entradas", f"R$ {in_v:,.2f}", delta_color="normal")
+                m2.metric("⬆️ Saídas", f"R$ {abs(out_v):,.2f}", delta_color="inverse")
+                m3.metric("💰 Saldo Líquido", f"R$ {saldo:,.2f}")
 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
-                # Gráficos de Alta Performance
+                # Cores suaves para os gráficos (Tema Dark)
+                grafico_cores = ['#0ea5e9', '#8b5cf6', '#10b981', '#f59e0b', '#f43f5e', '#64748b']
+
                 col_g1, col_g2 = st.columns(2)
                 with col_g1:
-                    st.markdown("##### Gastos por Categoria")
-                    fig_p = px.pie(df_f[df_f['amount'] < 0], values=df_f[df_f['amount'] < 0]['amount'].abs(), names='category', hole=0.5, color_discrete_sequence=px.colors.qualitative.Pastel)
-                    fig_p.update_layout(margin=dict(t=0, b=0, l=0, r=0), showlegend=True)
+                    st.markdown("<h5 style='color: #e2e8f0;'>Gastos por Categoria</h5>", unsafe_allow_html=True)
+                    fig_p = px.pie(df_f[df_f['amount'] < 0], values=df_f[df_f['amount'] < 0]['amount'].abs(), names='category', hole=0.4, color_discrete_sequence=grafico_cores)
+                    fig_p.update_layout(margin=dict(t=10, b=10, l=10, r=10), showlegend=True, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#e2e8f0'))
                     st.plotly_chart(fig_p, use_container_width=True)
                 
                 with col_g2:
-                    st.markdown("##### Evolução Diária")
+                    st.markdown("<h5 style='color: #e2e8f0;'>Evolução do Caixa</h5>", unsafe_allow_html=True)
                     df_day = df_f.groupby(df_f['date'].dt.date)['amount'].sum().reset_index()
-                    fig_l = px.area(df_day, x='date', y='amount', line_shape='spline', color_discrete_sequence=['#0066ff'])
-                    fig_l.update_layout(margin=dict(t=0, b=0, l=0, r=0), xaxis_title=None, yaxis_title=None)
+                    fig_l = px.area(df_day, x='date', y='amount', line_shape='spline', color_discrete_sequence=['#0ea5e9'])
+                    fig_l.update_layout(margin=dict(t=10, b=10, l=10, r=10), xaxis_title=None, yaxis_title=None, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#e2e8f0'))
+                    fig_l.update_xaxes(showgrid=False)
+                    fig_l.update_yaxes(gridcolor='#334155')
                     st.plotly_chart(fig_l, use_container_width=True)
 
-                st.markdown("##### Extrato Recente")
+                st.markdown("<h5 style='color: #e2e8f0;'>Extrato Recente</h5>", unsafe_allow_html=True)
                 st.dataframe(df_f[['date', 'description', 'amount', 'category']].sort_values('date', ascending=False), use_container_width=True, hide_index=True)
                 
                 # Exportação
                 c_ex1, c_ex2, _ = st.columns([1, 1, 4])
-                c_ex1.download_button("Excel", gerar_excel(df_f, in_v, out_v, saldo), "extrato.xlsx")
-                c_ex2.download_button("PDF", gerar_pdf(df_f, in_v, out_v, saldo), "relatorio.pdf")
+                c_ex1.download_button("📊 Baixar Excel", gerar_excel(df_f, in_v, out_v, saldo), "extrato.xlsx")
+                c_ex2.download_button("📄 Baixar PDF", gerar_pdf(df_f, in_v, out_v, saldo), "relatorio.pdf")
             else: st.error("Não foi possível carregar os dados deste banco.")
