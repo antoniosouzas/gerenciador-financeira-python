@@ -4,4 +4,5 @@ plotly
 requests
 python-dotenv
 fpdf2
-XlsxWriter
+xlsxwriter
+psycopg2-binary
