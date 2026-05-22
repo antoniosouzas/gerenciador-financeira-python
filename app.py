@@ -12,118 +12,77 @@ import psycopg2
 
 st.set_page_config(page_title="Auxiliador da Iandra", layout="wide", page_icon="💼")
 
-# --- NOVO VISUAL BASEADO NA IMAGEM (Fintech Dark Mode) ---
 st.markdown("""
     <style>
-    /* Fundo Principal Escuro */
-    .stApp { background-color: #13151a; }
-    
-    /* Barra Lateral */
-    [data-testid="stSidebar"] { 
-        background-color: #181a20 !important; 
-        border-right: 1px solid #22252e; 
-    }
-    
-    /* Esconder elementos padrão do Streamlit */
+    .stApp { background-color: #0f172a; }
+    [data-testid="stSidebar"] { background-color: #1e293b !important; border-right: 1px solid #334155; }
     #MainMenu {visibility: hidden;}
     header {visibility: hidden;}
     footer {visibility: hidden;}
     
-    /* Cartões (Métricas e Forms) */
     [data-testid="stForm"], [data-testid="stMetricContainer"] {
-        background-color: #1c1e26 !important; 
-        border: 1px solid #272a35 !important;
-        border-radius: 16px !important; 
-        padding: 24px !important; 
-        box-shadow: 0 8px 16px rgba(0,0,0,0.15) !important;
+        background-color: #1e293b !important; border: 1px solid #334155 !important;
+        border-radius: 16px !important; padding: 20px !important; box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important;
     }
-    [data-testid="stMetricValue"] { 
-        color: #ffffff !important; 
-        font-weight: 600 !important;
+    [data-testid="stMetricValue"] { color: #e2e8f0 !important; }
+    
+    /* Botões Padrões */
+    div.stButton > button:first-child {
+        background-color: #0284c7 !important; color: #ffffff !important; border-radius: 10px !important;
+        padding: 0.5rem 2rem !important; font-weight: 500 !important; border: 1px solid #0369a1 !important;
+        transition: all 0.3s ease; width: 100%;
     }
-    [data-testid="stMetricLabel"] {
-        color: #8c8f9e !important;
-        font-size: 0.9rem !important;
-    }
-
-    /* Navegação Lateral (Radio Buttons) Igual à Imagem */
-    div[role="radiogroup"] { gap: 10px; }
+    div.stButton > button:first-child:hover { background-color: #0369a1 !important; border-color: #0ea5e9 !important; }
+    
+    .connect-btn button { background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%) !important; border: none !important; height: 3.5rem !important; font-size: 1.1rem !important; }
+    
+    /* ==================================================
+       NOVO VISUAL: Botões de navegação lateral (st.radio) 
+       ================================================== */
+    div[role="radiogroup"] { gap: 8px; }
     div[role="radiogroup"] > label {
         background-color: transparent !important; 
-        border-radius: 12px !important; 
-        padding: 12px 20px !important;
+        border-radius: 8px !important; 
+        padding: 10px 15px !important;
         border: none !important; 
+        border-left: 3px solid transparent !important; /* Borda invisível por padrão */
         cursor: pointer; 
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
     }
     div[role="radiogroup"] > label:hover { 
-        background-color: rgba(255, 255, 255, 0.05) !important; 
+        background-color: rgba(255, 255, 255, 0.05) !important; /* Leve brilho ao passar o mouse */
     }
-    /* Item Selecionado (Roxo Vibrante) */
+    /* Estilo do item selecionado */
     div[role="radiogroup"] > label[data-checked="true"] { 
-        background-color: #6c5ce7 !important; 
-        box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4) !important;
+        background-color: rgba(14, 165, 233, 0.1) !important; /* Fundo azul bem clarinho/transparente */
+        border-left: 3px solid #0ea5e9 !important; /* Linha azul na esquerda */
     }
     div[role="radiogroup"] > label[data-checked="true"] p {
-        color: #ffffff !important; 
+        color: #38bdf8 !important; /* Texto azul claro quando selecionado */
         font-weight: 600 !important;
     }
-    div[role="radiogroup"] > label p {
-        color: #8c8f9e !important;
-    }
 
-    /* Botões Padrões (Contorno suave) */
-    div.stButton > button:first-child {
-        background-color: transparent !important; 
-        color: #ffffff !important; 
-        border-radius: 10px !important;
-        padding: 0.5rem 2rem !important; 
-        font-weight: 500 !important; 
-        border: 1px solid #3b3e4a !important;
-        transition: all 0.3s ease; 
-        width: 100%;
-    }
-    div.stButton > button:first-child:hover { 
-        border-color: #6c5ce7 !important; 
-        color: #6c5ce7 !important; 
-        background-color: rgba(108, 92, 231, 0.05) !important;
-    }
-    
-    /* Botões Primários (Type="primary" - Roxo) */
-    div.stButton > button[kind="primary"] {
-        background-color: #6c5ce7 !important;
-        color: #ffffff !important;
-        border: none !important;
-        box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4) !important;
-    }
-    div.stButton > button[kind="primary"]:hover {
-        background-color: #5a4bcf !important;
-        color: #ffffff !important;
-    }
-
-    /* Caixas de Texto, Data e Selects */
+    /* ==================================================
+       NOVO VISUAL: Caixas de Opções, Datas e Inputs 
+       ================================================== */
     .stTextInput input, .stDateInput input, [data-baseweb="select"] > div {
-        background-color: #181a20 !important; 
-        color: #ffffff !important; 
-        border: 1px solid #272a35 !important; 
-        border-radius: 10px !important;
+        background-color: #1e293b !important; 
+        color: #e2e8f0 !important; 
+        border: 1px solid #475569 !important; 
+        border-radius: 8px !important;
+        transition: all 0.3s ease;
     }
+    /* Efeito de Foco (quando clica na caixa) */
     .stTextInput input:focus, .stDateInput input:focus, [data-baseweb="select"] > div:focus-within {
-        border-color: #6c5ce7 !important;
-        box-shadow: 0 0 0 1px #6c5ce7 !important;
+        border-color: #0ea5e9 !important;
+        box-shadow: 0 0 0 1px #0ea5e9 !important;
     }
-    
-    /* Tags do Select */
+    /* Estilo das "Tags" selecionadas no Multiselect de categorias */
     span[data-baseweb="tag"] {
-        background-color: #6c5ce7 !important;
+        background-color: #0284c7 !important;
         color: white !important;
         border-radius: 6px !important;
         border: none !important;
-    }
-    
-    /* Ajuste de Títulos e Textos para combinar com o fundo */
-    h1, h2, h3, h4, h5, p {
-        color: #e2e8f0 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -580,7 +539,7 @@ if not st.session_state['logado']:
 # ==========================================
 else:
     with st.sidebar:
-        st.markdown(f"### Olá, <span style='color: #6c5ce7;'>{st.session_state['usuario_nome']}</span> 👋", unsafe_allow_html=True)
+        st.markdown(f"### Olá, <span style='color: #38bdf8;'>{st.session_state['usuario_nome']}</span> 👋", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         
         if st.button("🔄 Forçar Atualização de Dados"):
@@ -601,7 +560,7 @@ else:
 
     # --- ADMIN ---
     if menu == "⚙️ Admin":
-        st.markdown("<h2>⚙️ Painel de Controle</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color: #e2e8f0;'>⚙️ Painel de Controle</h2>", unsafe_allow_html=True)
         tab_add, tab_lista = st.tabs(["➕ Novo Cliente", "👥 Gerir Clientes"])
         with tab_add:
             with st.form("add_user"):
@@ -623,14 +582,14 @@ else:
 
     # --- GERIR BANCOS ---
     elif menu == "🔗 Gerir Bancos":
-        st.markdown("<h2>🔗 Conexões Bancárias</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color: #e2e8f0;'>🔗 Conexões Bancárias</h2>", unsafe_allow_html=True)
 
         col_txt, col_btn = st.columns([2, 1])
         with col_txt:
             st.write("Conecte as contas bancárias para sincronizar as transações automaticamente.")
         with col_btn:
             st.markdown('<div class="connect-btn">', unsafe_allow_html=True)
-            if st.button("➕ Conectar Novo Banco", type="primary"):
+            if st.button("➕ Conectar Novo Banco"):
                 st.session_state['abrir_pluggy'] = True
                 st.session_state['pluggy_sucesso'] = False
                 st.session_state['pluggy_item_id'] = ""
@@ -743,7 +702,7 @@ connect.init();
 
     # --- DASHBOARD ---
     elif menu == "📊 Dashboard":
-        st.markdown("<h2>📊 Resumo Financeiro</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color: #e2e8f0;'>📊 Resumo Financeiro</h2>", unsafe_allow_html=True)
 
         conexoes = buscar_conexoes_usuario(st.session_state['usuario_id'])
         if not conexoes:
@@ -880,12 +839,12 @@ connect.init();
 
                         st.markdown("<br>", unsafe_allow_html=True)
 
-                        grafico_cores = ['#6c5ce7', '#00cec9', '#fd79a8', '#fdcb6e', '#e17055', '#d63031', '#00b894', '#0984e3', '#636e72', '#b2bec3']
+                        grafico_cores = ['#0ea5e9', '#8b5cf6', '#10b981', '#f59e0b', '#f43f5e', '#64748b', '#ec4899', '#14b8a6', '#f97316', '#a78bfa']
 
                         col_g1, col_g2 = st.columns(2)
 
                         with col_g1:
-                            st.markdown("<h5>💸 Gastos por Categoria</h5>", unsafe_allow_html=True)
+                            st.markdown("<h5 style='color: #e2e8f0;'>💸 Gastos por Categoria</h5>", unsafe_allow_html=True)
                             df_saidas = df_f[df_f['tipo'] == 'Saída']
                             if not df_saidas.empty:
                                 cat_group = df_saidas.groupby('categoria')['valor_abs'].sum().reset_index()
@@ -901,7 +860,7 @@ connect.init();
                                 fig_p.update_layout(
                                     margin=dict(t=10, b=10, l=10, r=10),
                                     showlegend=True,
-                                    legend=dict(font=dict(color='#8c8f9e'), bgcolor='rgba(0,0,0,0)'),
+                                    legend=dict(font=dict(color='#94a3b8'), bgcolor='rgba(0,0,0,0)'),
                                     paper_bgcolor='rgba(0,0,0,0)',
                                     plot_bgcolor='rgba(0,0,0,0)',
                                     font=dict(color='#e2e8f0')
@@ -911,7 +870,7 @@ connect.init();
                                 st.info("Nenhuma saída no período filtrado.")
 
                         with col_g2:
-                            st.markdown("<h5>📈 Evolução do Caixa</h5>", unsafe_allow_html=True)
+                            st.markdown("<h5 style='color: #e2e8f0;'>📈 Evolução do Caixa</h5>", unsafe_allow_html=True)
                             df_day = df_f.copy()
                             df_day['valor_sinal'] = df_day.apply(
                                 lambda r: r['valor_abs'] if r['tipo'] == 'Entrada' else -r['valor_abs'], axis=1
@@ -923,7 +882,7 @@ connect.init();
                             fig_l = px.area(
                                 df_day_grp, x='date', y='saldo_acumulado',
                                 line_shape='spline',
-                                color_discrete_sequence=['#6c5ce7'],
+                                color_discrete_sequence=['#0ea5e9'],
                                 labels={'saldo_acumulado': 'Saldo Acumulado', 'date': 'Data'}
                             )
                             fig_l.update_layout(
@@ -932,19 +891,19 @@ connect.init();
                                 paper_bgcolor='rgba(0,0,0,0)',
                                 plot_bgcolor='rgba(0,0,0,0)',
                                 font=dict(color='#e2e8f0'),
-                                yaxis=dict(gridcolor='#272a35', tickprefix='R$ ')
+                                yaxis=dict(gridcolor='#334155', tickprefix='R$ ')
                             )
                             fig_l.update_xaxes(showgrid=False)
                             st.plotly_chart(fig_l, use_container_width=True)
 
-                        st.markdown("<h5>📊 Entradas vs Saídas por Mês</h5>", unsafe_allow_html=True)
+                        st.markdown("<h5 style='color: #e2e8f0;'>📊 Entradas vs Saídas por Mês</h5>", unsafe_allow_html=True)
                         df_mensal = df_f.copy()
                         df_mensal['mes'] = df_mensal['date'].dt.to_period('M').astype(str)
                         df_mensal_grp = df_mensal.groupby(['mes', 'tipo'])['valor_abs'].sum().reset_index()
                         fig_bar = px.bar(
                             df_mensal_grp, x='mes', y='valor_abs', color='tipo',
                             barmode='group',
-                            color_discrete_map={'Entrada': '#00b894', 'Saída': '#d63031'},
+                            color_discrete_map={'Entrada': '#10b981', 'Saída': '#f43f5e'},
                             labels={'valor_abs': 'Valor (R$)', 'mes': 'Mês', 'tipo': 'Tipo'}
                         )
                         fig_bar.update_layout(
@@ -952,14 +911,14 @@ connect.init();
                             paper_bgcolor='rgba(0,0,0,0)',
                             plot_bgcolor='rgba(0,0,0,0)',
                             font=dict(color='#e2e8f0'),
-                            legend=dict(font=dict(color='#8c8f9e'), bgcolor='rgba(0,0,0,0)'),
-                            yaxis=dict(gridcolor='#272a35', tickprefix='R$ '),
+                            legend=dict(font=dict(color='#94a3b8'), bgcolor='rgba(0,0,0,0)'),
+                            yaxis=dict(gridcolor='#334155', tickprefix='R$ '),
                             xaxis=dict(showgrid=False)
                         )
                         st.plotly_chart(fig_bar, use_container_width=True)
 
                         # --- EXTRATO ---
-                        st.markdown("<h5>🧾 Extrato Detalhado</h5>", unsafe_allow_html=True)
+                        st.markdown("<h5 style='color: #e2e8f0;'>🧾 Extrato Detalhado</h5>", unsafe_allow_html=True)
 
                         df_extrato = df_f[['date', 'descricao_completa', 'valor_abs', 'tipo', 'categoria']].copy()
                         df_extrato = df_extrato.sort_values('date', ascending=False)
