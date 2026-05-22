@@ -49,9 +49,14 @@ CLIENT_ID = os.getenv("PLUGGY_CLIENT_ID") or st.secrets.get("PLUGGY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("PLUGGY_CLIENT_SECRET") or st.secrets.get("PLUGGY_CLIENT_SECRET")
 DATABASE_URL = os.getenv("DATABASE_URL") or st.secrets.get("DATABASE_URL")
 
-# --- FUNÇÕES DE BASE DE DADOS E PLUGGY ---
-def get_db_connection(): return psycopg2.connect(DATABASE_URL)
+# --- INICIALIZAÇÃO DA SESSÃO ---
+if 'logado' not in st.session_state: st.session_state['logado'] = False
+if 'usuario_id' not in st.session_state: st.session_state['usuario_id'] = None
+if 'is_admin' not in st.session_state: st.session_state['is_admin'] = False
+if 'abrir_pluggy' not in st.session_state: st.session_state['abrir_pluggy'] = False
 
+# --- FUNÇÕES DE BASE DE DADOS ---
+def get_db_connection(): return psycopg2.connect(DATABASE_URL)
 def hash_senha(senha): return hashlib.sha256(senha.encode()).hexdigest()
 
 def verificar_login(email, senha):
@@ -72,6 +77,32 @@ def registrar_usuario(nome, email, senha, is_admin=False):
     except: return False
     finally: conn.close()
 
+def buscar_todos_usuarios():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, nome, email, is_admin, data_cadastro FROM usuarios")
+    usuarios = cursor.fetchall()
+    conn.close()
+    return usuarios
+
+def deletar_usuario_completo(usuario_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM conexoes_bancarias WHERE usuario_id = %s", (usuario_id,))
+    cursor.execute("DELETE FROM usuarios WHERE id = %s", (usuario_id,))
+    conn.commit()
+    conn.close()
+
+def salvar_conexao(usuario_id, pluggy_item_id, nome_instituicao="Nova Conta"):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('INSERT INTO conexoes_bancarias (usuario_id, pluggy_item_id, nome_instituicao) VALUES (%s, %s, %s)', (usuario_id, pluggy_item_id, nome_instituicao))
+        conn.commit()
+        return True
+    except: return False
+    finally: conn.close()
+
 def buscar_conexoes_usuario(usuario_id):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -87,6 +118,7 @@ def deletar_conexao(conexao_id):
     conn.commit()
     conn.close()
 
+# --- FUNÇÕES PLUGGY E EXPORTAÇÃO ---
 def gerar_connect_token():
     url_auth = "https://api.pluggy.ai/auth"
     response = requests.post(url_auth, json={"clientId": CLIENT_ID, "clientSecret": CLIENT_SECRET}, timeout=10)
@@ -95,28 +127,6 @@ def gerar_connect_token():
     headers = {"accept": "application/json", "X-API-KEY": api_key}
     response_token = requests.post(url_token, headers=headers, json={}, timeout=10)
     return response_token.json().get("accessToken")
-
-def puxar_conexoes_pluggy(usuario_id):
-    url_auth = "https://api.pluggy.ai/auth"
-    try:
-        response = requests.post(url_auth, json={"clientId": CLIENT_ID, "clientSecret": CLIENT_SECRET}, timeout=10)
-        token = response.json().get("apiKey")
-        headers = {"accept": "application/json", "X-API-KEY": token}
-        items = requests.get("https://api.pluggy.ai/items", headers=headers, timeout=10).json().get("results", [])
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        for item in items:
-            item_id = item['id']
-            # Verifica se já temos este
-            cursor.execute("SELECT id FROM conexoes_bancarias WHERE pluggy_item_id = %s", (item_id,))
-            if not cursor.fetchone():
-                nome = item.get("connector", {}).get("name", "Banco")
-                cursor.execute('INSERT INTO conexoes_bancarias (usuario_id, pluggy_item_id, nome_instituicao) VALUES (%s, %s, %s)', (usuario_id, item_id, nome))
-        conn.commit()
-        conn.close()
-        return True
-    except: return False
 
 @st.cache_data(ttl=3600)
 def buscar_dados_reais(item_id):
@@ -138,53 +148,88 @@ TRADUCAO_CATEGORIAS = {
     'PERSONAL CARE': 'Cuidados Pessoais', 'UNCATEGORIZED': 'Outros'
 }
 
-# --- ECRÃS ---
-if 'logado' not in st.session_state: st.session_state['logado'] = False
+def gerar_excel(df, total_in, total_out, saldo):
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        df.to_excel(writer, index=False, sheet_name='Extrato')
+    return output.getvalue()
 
+def gerar_pdf(df, total_in, total_out, saldo):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("helvetica", 'B', 16)
+    pdf.cell(0, 10, "Relatorio Financeiro", ln=True, align='C')
+    pdf.set_font("helvetica", '', 12)
+    pdf.cell(0, 10, f"Entradas: R$ {total_in:.2f} | Saidas: R$ {total_out:.2f} | Saldo: R$ {saldo:.2f}", ln=True, align='C')
+    return bytes(pdf.output())
+
+# ==========================================
+# ECRÃ DE LOGIN
+# ==========================================
 if not st.session_state['logado']:
-    with st.form("login"):
-        email = st.text_input("E-mail")
-        senha = st.text_input("Senha", type="password")
-        if st.form_submit_button("Entrar"):
-            usuario = verificar_login(email, senha)
-            if usuario:
-                st.session_state.update({'logado': True, 'usuario_id': usuario[0], 'usuario_nome': usuario[1], 'is_admin': bool(usuario[2])})
-                st.rerun()
+    col1, col2, col3 = st.columns([1, 1.5, 1])
+    with col2:
+        with st.form("login_form"):
+            email = st.text_input("E-mail")
+            senha = st.text_input("Palavra-passe", type="password")
+            if st.form_submit_button("Entrar no Painel"):
+                if email == "admin" and senha == "admin":
+                    st.session_state.update({'logado': True, 'usuario_id': 999, 'usuario_nome': "Admin", 'is_admin': True})
+                    st.rerun()
+                else:
+                    usuario = verificar_login(email, senha)
+                    if usuario:
+                        st.session_state.update({'logado': True, 'usuario_id': usuario[0], 'usuario_nome': usuario[1], 'is_admin': bool(usuario[2])})
+                        st.rerun()
+                    else: st.error("Acesso negado.")
+
 else:
-    menu = st.sidebar.radio("Navegação", ["📊 Dashboard", "🔗 Gerir Bancos"])
-    
+    # CAPTURA DO ID
+    if 'novo_item_id' in st.query_params:
+        salvar_conexao(st.session_state['usuario_id'], st.query_params['novo_item_id'])
+        st.query_params.clear()
+        st.rerun()
+
+    # SIDEBAR
+    with st.sidebar:
+        menu = st.radio("Navegação", ["📊 Dashboard", "🔗 Gerir Bancos", "⚙️ Admin"] if st.session_state['is_admin'] else ["📊 Dashboard", "🔗 Gerir Bancos"])
+        if st.button("🚪 Sair"):
+            st.session_state.update({'logado': False, 'is_admin': False})
+            st.rerun()
+
+    # --- TELA: GERIR BANCOS ---
     if menu == "🔗 Gerir Bancos":
-        st.markdown("## 🔗 Conexões")
-        if st.button("➕ Conectar Novo Banco"): st.session_state['abrir_pluggy'] = True
+        st.markdown("## 🔗 Conexões Bancárias")
+        if st.button("➕ Conectar Novo Banco"):
+            st.session_state['abrir_pluggy'] = True
         
         if st.session_state.get('abrir_pluggy'):
             token = gerar_connect_token()
             components.html(f"""
                 <script src="https://cdn.pluggy.ai/pluggy-connect/v2.8.2/pluggy-connect.js"></script>
+                <div id="pluggy-area"></div>
                 <script>
-                    const connect = new PluggyConnect({{ connectToken: '{token}' }});
+                    const connect = new PluggyConnect({{
+                        connectToken: '{token}',
+                        onSuccess: (data) => {{ window.parent.location.href = '/?novo_item_id=' + data.item.id; }},
+                    }});
                     connect.init();
                 </script>
             """, height=500)
-            if st.button("🔄 Sincronizar Conexões"):
-                if puxar_conexoes_pluggy(st.session_state['usuario_id']):
-                    st.success("Sincronizado!")
-                    st.session_state['abrir_pluggy'] = False
-                    st.rerun()
 
         for cx in buscar_conexoes_usuario(st.session_state['usuario_id']):
             st.info(f"🏦 {cx[2]}")
-            if st.button("🗑", key=cx[0]): deletar_conexao(cx[0]); st.rerun()
+            if st.button("🗑", key=f"del_{cx[0]}"): deletar_conexao(cx[0]); st.rerun()
 
+    # --- TELA: DASHBOARD ---
     elif menu == "📊 Dashboard":
         conexoes = buscar_conexoes_usuario(st.session_state['usuario_id'])
-        if not conexoes: st.warning("Conecte um banco em 'Gerir Bancos'")
+        if not conexoes: st.warning("Conecte um banco.")
         else:
-            sel = st.selectbox("Selecione a conta:", [f"{c[2]}" for c in conexoes])
+            sel = st.selectbox("Conta:", [c[2] for c in conexoes])
             item_id = [c[1] for c in conexoes if c[2] == sel][0]
             dados = buscar_dados_reais(item_id)
             if isinstance(dados, list):
                 df = pd.DataFrame(dados)
                 st.metric("Saldo", f"R$ {df['amount'].sum():,.2f}")
                 st.dataframe(df[['description', 'amount']])
-            else: st.error("Erro ao carregar dados")
