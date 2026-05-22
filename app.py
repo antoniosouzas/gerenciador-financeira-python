@@ -10,7 +10,6 @@ from fpdf import FPDF
 import streamlit.components.v1 as components
 import psycopg2
 
-# 1. CONFIGURAÇÃO DA PÁGINA E ESTILO CSS
 st.set_page_config(page_title="Auxiliador da Iandra", layout="wide", page_icon="💼")
 
 st.markdown("""
@@ -50,7 +49,6 @@ CLIENT_ID = os.getenv("PLUGGY_CLIENT_ID") or st.secrets.get("PLUGGY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("PLUGGY_CLIENT_SECRET") or st.secrets.get("PLUGGY_CLIENT_SECRET")
 DATABASE_URL = os.getenv("DATABASE_URL") or st.secrets.get("DATABASE_URL")
 
-# --- INICIALIZAÇÃO DA SESSÃO ---
 defaults = {
     'logado': False, 'usuario_nome': "", 'usuario_id': None,
     'is_admin': False, 'abrir_pluggy': False,
@@ -60,7 +58,7 @@ for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-# --- FUNÇÕES DE BASE DE DADOS ---
+# --- BANCO DE DADOS ---
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL)
 
@@ -129,21 +127,12 @@ def salvar_conexao_por_item_id(usuario_id, item_id):
         if cursor.fetchone():
             conn.close()
             return False, "Este banco já está sincronizado."
-
-        response = requests.post(
-            "https://api.pluggy.ai/auth",
-            json={"clientId": CLIENT_ID, "clientSecret": CLIENT_SECRET},
-            timeout=10
-        )
+        response = requests.post("https://api.pluggy.ai/auth", json={"clientId": CLIENT_ID, "clientSecret": CLIENT_SECRET}, timeout=10)
         token = response.json().get("apiKey")
         headers = {"accept": "application/json", "X-API-KEY": token}
         item_resp = requests.get(f"https://api.pluggy.ai/items/{item_id}", headers=headers, timeout=10)
         nome_banco = item_resp.json().get("connector", {}).get("name", "Banco Desconhecido")
-
-        cursor.execute(
-            'INSERT INTO conexoes_bancarias (usuario_id, pluggy_item_id, nome_instituicao) VALUES (%s, %s, %s)',
-            (usuario_id, item_id, nome_banco)
-        )
+        cursor.execute('INSERT INTO conexoes_bancarias (usuario_id, pluggy_item_id, nome_instituicao) VALUES (%s, %s, %s)', (usuario_id, item_id, nome_banco))
         conn.commit()
         conn.close()
         return True, f"✅ {nome_banco} conectado e salvo com sucesso!"
@@ -152,11 +141,7 @@ def salvar_conexao_por_item_id(usuario_id, item_id):
 
 def sincronizar_ultimo_banco(usuario_id):
     try:
-        response = requests.post(
-            "https://api.pluggy.ai/auth",
-            json={"clientId": CLIENT_ID, "clientSecret": CLIENT_SECRET},
-            timeout=10
-        )
+        response = requests.post("https://api.pluggy.ai/auth", json={"clientId": CLIENT_ID, "clientSecret": CLIENT_SECRET}, timeout=10)
         token = response.json().get("apiKey")
         headers = {"accept": "application/json", "X-API-KEY": token}
         items_resp = requests.get("https://api.pluggy.ai/items", headers=headers, timeout=10).json()
@@ -172,10 +157,7 @@ def sincronizar_ultimo_banco(usuario_id):
         if cursor.fetchone():
             conn.close()
             return False, f"O banco {nome_banco} já está sincronizado."
-        cursor.execute(
-            'INSERT INTO conexoes_bancarias (usuario_id, pluggy_item_id, nome_instituicao) VALUES (%s, %s, %s)',
-            (usuario_id, item_id, nome_banco)
-        )
+        cursor.execute('INSERT INTO conexoes_bancarias (usuario_id, pluggy_item_id, nome_instituicao) VALUES (%s, %s, %s)', (usuario_id, item_id, nome_banco))
         conn.commit()
         conn.close()
         return True, f"✅ {nome_banco} sincronizado com sucesso!"
@@ -183,35 +165,93 @@ def sincronizar_ultimo_banco(usuario_id):
         return False, f"Erro ao comunicar com a Pluggy: {e}"
 
 def gerar_connect_token():
-    url_auth = "https://api.pluggy.ai/auth"
-    response = requests.post(url_auth, json={"clientId": CLIENT_ID, "clientSecret": CLIENT_SECRET}, timeout=10)
+    response = requests.post("https://api.pluggy.ai/auth", json={"clientId": CLIENT_ID, "clientSecret": CLIENT_SECRET}, timeout=10)
     api_key = response.json().get("apiKey")
-    url_token = "https://api.pluggy.ai/connect_token"
     headers = {"accept": "application/json", "X-API-KEY": api_key}
-    response_token = requests.post(url_token, headers=headers, json={}, timeout=10)
+    response_token = requests.post("https://api.pluggy.ai/connect_token", headers=headers, json={}, timeout=10)
     return response_token.json().get("accessToken")
 
+# -------------------------------------------------------
+# FUNÇÃO PRINCIPAL DE DADOS — corrigida
+# A Pluggy retorna transações com:
+#   amount NEGATIVO = DÉBITO (saída de dinheiro)
+#   amount POSITIVO = CRÉDITO (entrada de dinheiro)
+# Mantemos esse padrão e exibimos corretamente.
+# A categoria vem em 'category' como string simples (ex: "FOOD_AND_DRINK")
+# ou dentro de um dict. Tratamos ambos os casos.
+# -------------------------------------------------------
 @st.cache_data(ttl=3600)
 def buscar_dados_reais(item_id):
-    url_auth = "https://api.pluggy.ai/auth"
     try:
-        response = requests.post(url_auth, json={"clientId": CLIENT_ID, "clientSecret": CLIENT_SECRET}, timeout=10)
+        response = requests.post("https://api.pluggy.ai/auth", json={"clientId": CLIENT_ID, "clientSecret": CLIENT_SECRET}, timeout=10)
         token = response.json().get("apiKey")
         headers = {"accept": "application/json", "X-API-KEY": token}
-        contas = requests.get(f"https://api.pluggy.ai/accounts?itemId={item_id}", headers=headers, timeout=10).json().get("results", [])
+        contas_resp = requests.get(f"https://api.pluggy.ai/accounts?itemId={item_id}", headers=headers, timeout=10).json()
+        contas = contas_resp.get("results", [])
         if not contas:
-            return "SEM_CONTAS"
+            return "SEM_CONTAS", []
+        
+        # Pega saldo de todas as contas
+        info_contas = []
+        for c in contas:
+            info_contas.append({
+                "nome": c.get("name", "Conta"),
+                "tipo": c.get("type", ""),
+                "saldo": c.get("balance", 0),
+                "id": c.get("id")
+            })
+        
+        # Busca transações da primeira conta
         conta_id = contas[0].get("id")
-        trans = requests.get(f"https://api.pluggy.ai/transactions?accountId={conta_id}&pageSize=500", headers=headers, timeout=10).json().get("results", [])
-        return trans
-    except:
-        return "ERRO_DADOS"
+        trans_resp = requests.get(
+            f"https://api.pluggy.ai/transactions?accountId={conta_id}&pageSize=500",
+            headers=headers, timeout=15
+        ).json()
+        trans = trans_resp.get("results", [])
+        return trans, info_contas
+    except Exception as e:
+        return "ERRO_DADOS", []
 
+# Mapeamento robusto de categorias da Pluggy
+# A API pode retornar string simples ou com underscores
 TRADUCAO_CATEGORIAS = {
-    'INCOME': 'Renda', 'SHOPPING': 'Compras', 'GROCERIES': 'Supermercado', 'FOOD AND DRINK': 'Alimentação',
-    'HEALTHCARE': 'Saúde', 'TRANSPORTATION': 'Transporte', 'ENTERTAINMENT': 'Lazer', 'UTILITIES': 'Contas de Casa',
-    'PERSONAL CARE': 'Cuidados Pessoais', 'UNCATEGORIZED': 'Outros'
+    # Padrão com underscore (mais comum na Pluggy v2)
+    'FOOD_AND_DRINK': 'Alimentação',
+    'GROCERIES': 'Supermercado',
+    'SHOPPING': 'Compras',
+    'INCOME': 'Renda',
+    'TRANSFER': 'Transferência',
+    'PAYMENT': 'Pagamento',
+    'HEALTHCARE': 'Saúde',
+    'TRANSPORTATION': 'Transporte',
+    'ENTERTAINMENT': 'Lazer',
+    'UTILITIES': 'Contas de Casa',
+    'PERSONAL_CARE': 'Cuidados Pessoais',
+    'EDUCATION': 'Educação',
+    'TRAVEL': 'Viagem',
+    'INVESTMENT': 'Investimento',
+    'BANK_FEES': 'Tarifas Bancárias',
+    'CREDIT_CARD': 'Cartão de Crédito',
+    'LOAN': 'Empréstimo',
+    'INSURANCE': 'Seguro',
+    'HOME': 'Casa',
+    'UNCATEGORIZED': 'Outros',
+    # Padrão com espaço (API v1 legada)
+    'FOOD AND DRINK': 'Alimentação',
+    'PERSONAL CARE': 'Cuidados Pessoais',
+    'BANK FEES': 'Tarifas Bancárias',
+    'CREDIT CARD': 'Cartão de Crédito',
 }
+
+def traduzir_categoria(cat_raw):
+    """Extrai e traduz categoria independente do formato retornado pela Pluggy."""
+    if cat_raw is None:
+        return 'Outros'
+    # Se vier como dict (ex: {"id": 1, "description": "FOOD_AND_DRINK"})
+    if isinstance(cat_raw, dict):
+        cat_raw = cat_raw.get('description', cat_raw.get('name', 'UNCATEGORIZED'))
+    cat_str = str(cat_raw).upper().strip()
+    return TRADUCAO_CATEGORIAS.get(cat_str, cat_str.replace('_', ' ').title() if cat_str else 'Outros')
 
 def gerar_excel(df, total_in, total_out, saldo):
     output = io.BytesIO()
@@ -229,7 +269,7 @@ def gerar_pdf(df, total_in, total_out, saldo):
     return bytes(pdf.output())
 
 # ==========================================
-# ECRÃ DE LOGIN
+# LOGIN
 # ==========================================
 if not st.session_state['logado']:
     col1, col2, col3 = st.columns([1, 1.5, 1])
@@ -266,12 +306,12 @@ else:
             ["📊 Dashboard", "🔗 Gerir Bancos", "⚙️ Admin"] if st.session_state['is_admin']
             else ["📊 Dashboard", "🔗 Gerir Bancos"]
         )
-        st.markdown("<div style='height: 250px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height: 200px;'></div>", unsafe_allow_html=True)
         if st.button("🚪 Sair do Sistema"):
             st.session_state.update({'logado': False, 'is_admin': False})
             st.rerun()
 
-    # --- TELA: ADMIN ---
+    # --- ADMIN ---
     if menu == "⚙️ Admin":
         st.markdown("<h2 style='color: #e2e8f0;'>⚙️ Painel de Controle</h2>", unsafe_allow_html=True)
         tab_add, tab_lista = st.tabs(["➕ Novo Cliente", "👥 Gerir Clientes"])
@@ -283,10 +323,8 @@ else:
                 adm = st.checkbox("Dar acesso de Administrador?")
                 if st.form_submit_button("Criar Conta do Cliente"):
                     if n and e and p:
-                        if registrar_usuario(n, e, p, adm):
-                            st.success(f"Cliente {n} criado!")
-                        else:
-                            st.error("Erro ao criar. O e-mail já existe?")
+                        if registrar_usuario(n, e, p, adm): st.success(f"Cliente {n} criado!")
+                        else: st.error("Erro ao criar. O e-mail já existe?")
         with tab_lista:
             for u in buscar_todos_usuarios():
                 with st.expander(f"👤 {u[1]} ({u[2]})"):
@@ -295,7 +333,7 @@ else:
                             deletar_usuario_completo(u[0])
                             st.rerun()
 
-    # --- TELA: GERIR BANCOS ---
+    # --- GERIR BANCOS ---
     elif menu == "🔗 Gerir Bancos":
         st.markdown("<h2 style='color: #e2e8f0;'>🔗 Conexões Bancárias</h2>", unsafe_allow_html=True)
 
@@ -310,9 +348,6 @@ else:
                 st.session_state['pluggy_item_id'] = ""
             st.markdown('</div>', unsafe_allow_html=True)
 
-        # -------------------------------------------------------
-        # ESTADO: WIDGET PLUGGY ABERTO
-        # -------------------------------------------------------
         if st.session_state['abrir_pluggy'] and not st.session_state['pluggy_sucesso']:
             token = gerar_connect_token()
             if token:
@@ -320,59 +355,31 @@ else:
                     st.session_state['abrir_pluggy'] = False
                     st.rerun()
 
-                # O widget Pluggy captura o item_id via onSuccess
-                # e o exibe como texto copiável dentro do iframe.
-                # O usuário copia e cola no campo abaixo — 1 ação simples.
-                # Isso é 100% confiável em qualquer browser/sandbox.
                 components.html(f"""
-<!DOCTYPE html>
-<html>
-<head>
+<!DOCTYPE html><html><head>
 <style>
-  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  body {{ background: transparent; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }}
-  #widget-area {{ min-height: 460px; }}
-  #success-box {{
-    display: none;
-    background: #0f2218;
-    border: 1px solid #10b981;
-    border-radius: 12px;
-    padding: 32px 24px;
-    margin: 16px 0;
-    text-align: center;
-  }}
-  #success-box h2 {{ color: #10b981; font-size: 1.3rem; margin-bottom: 8px; }}
-  #success-box p  {{ color: #94a3b8; font-size: 0.95rem; margin-bottom: 20px; }}
-  #id-display {{
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 8px;
-    padding: 14px 16px;
-    font-family: monospace;
-    font-size: 0.9rem;
-    color: #38bdf8;
-    word-break: break-all;
-    margin-bottom: 16px;
-    text-align: left;
-  }}
-  #copy-btn {{
-    background: #0284c7;
-    color: white;
-    border: none;
-    border-radius: 20px;
-    padding: 10px 28px;
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: background 0.2s;
-  }}
-  #copy-btn:hover {{ background: #0369a1; }}
-  #copy-hint {{ color: #10b981; font-size: 0.85rem; margin-top: 10px; display: none; }}
-</style>
-</head>
-<body>
-
+* {{ box-sizing: border-box; margin: 0; padding: 0; }}
+body {{ background: transparent; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }}
+#widget-area {{ min-height: 460px; }}
+#success-box {{
+  display: none; background: #0f2218; border: 1px solid #10b981;
+  border-radius: 12px; padding: 32px 24px; margin: 16px 0; text-align: center;
+}}
+#success-box h2 {{ color: #10b981; font-size: 1.3rem; margin-bottom: 8px; }}
+#success-box p  {{ color: #94a3b8; font-size: 0.95rem; margin-bottom: 20px; }}
+#id-display {{
+  background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+  padding: 14px 16px; font-family: monospace; font-size: 0.9rem; color: #38bdf8;
+  word-break: break-all; margin-bottom: 16px; text-align: left;
+}}
+#copy-btn {{
+  background: #0284c7; color: white; border: none; border-radius: 20px;
+  padding: 10px 28px; font-size: 0.95rem; cursor: pointer;
+}}
+#copy-btn:hover {{ background: #0369a1; }}
+#copy-hint {{ color: #10b981; font-size: 0.85rem; margin-top: 10px; display: none; }}
+</style></head><body>
 <div id="widget-area"></div>
-
 <div id="success-box">
   <h2>✅ Banco conectado com sucesso!</h2>
   <p>Copie o ID abaixo e cole no campo que apareceu na página:</p>
@@ -380,18 +387,15 @@ else:
   <button id="copy-btn" onclick="copiarID()">📋 Copiar ID</button>
   <p id="copy-hint">✓ Copiado! Agora cole no campo acima e clique em Salvar.</p>
 </div>
-
 <script src="https://cdn.pluggy.ai/pluggy-connect/v2.8.2/pluggy-connect.js"></script>
 <script>
 var capturedItemId = '';
-
 function copiarID() {{
   navigator.clipboard.writeText(capturedItemId).then(function() {{
     document.getElementById('copy-hint').style.display = 'block';
     document.getElementById('copy-btn').textContent = '✓ Copiado!';
   }});
 }}
-
 var connect = new PluggyConnect({{
   connectToken: '{token}',
   onSuccess: function(data) {{
@@ -401,63 +405,34 @@ var connect = new PluggyConnect({{
     document.getElementById('success-box').style.display = 'block';
   }},
   onClose: function() {{
-    document.getElementById('widget-area').innerHTML =
-      '<p style="color:#94a3b8;text-align:center;padding:60px;font-family:sans-serif;">Conexão encerrada.</p>';
+    document.getElementById('widget-area').innerHTML = '<p style="color:#94a3b8;text-align:center;padding:60px;">Conexão encerrada.</p>';
   }},
   onError: function(err) {{
-    document.getElementById('widget-area').innerHTML =
-      '<p style="color:#f43f5e;text-align:center;padding:60px;font-family:sans-serif;">Erro na conexão. Tente novamente.</p>';
+    document.getElementById('widget-area').innerHTML = '<p style="color:#f43f5e;text-align:center;padding:60px;">Erro na conexão. Tente novamente.</p>';
   }}
 }});
-
 connect.init();
-</script>
-</body>
-</html>
+</script></body></html>
 """, height=540)
 
-                # Campo para colar o item_id e salvar
-                st.markdown(
-                    "<p style='color:#94a3b8; font-size:0.9rem; margin-top:8px;'>"
-                    "👆 Após conectar o banco acima, copie o ID exibido e cole aqui:</p>",
-                    unsafe_allow_html=True
-                )
-                item_id_input = st.text_input(
-                    "ID da Conexão (item_id)",
-                    placeholder="Cole aqui o ID copiado do widget acima...",
-                    label_visibility="collapsed"
-                )
+                st.markdown("<p style='color:#94a3b8; font-size:0.9rem; margin-top:8px;'>👆 Após conectar o banco acima, copie o ID exibido e cole aqui:</p>", unsafe_allow_html=True)
+                item_id_input = st.text_input("ID da Conexão", placeholder="Cole aqui o ID copiado do widget acima...", label_visibility="collapsed")
                 if st.button("💾 Salvar Conexão", type="primary", disabled=not item_id_input.strip()):
                     with st.spinner("Salvando no Supabase..."):
-                        sucesso, msg = salvar_conexao_por_item_id(
-                            st.session_state['usuario_id'],
-                            item_id_input
-                        )
+                        sucesso, msg = salvar_conexao_por_item_id(st.session_state['usuario_id'], item_id_input)
                     if sucesso:
-                        st.session_state['pluggy_sucesso'] = True
-                        st.session_state['pluggy_item_id'] = item_id_input.strip()
-                        st.session_state['abrir_pluggy'] = False
+                        st.session_state.update({'pluggy_sucesso': True, 'pluggy_item_id': item_id_input.strip(), 'abrir_pluggy': False})
                         st.success(msg)
                         st.rerun()
                     else:
                         st.warning(msg)
 
-        # -------------------------------------------------------
-        # ESTADO: CONEXÃO SALVA COM SUCESSO — redireciona suave
-        # -------------------------------------------------------
         if st.session_state['pluggy_sucesso']:
             st.success("🎉 Banco conectado! Acesse o **Dashboard** para ver seus dados.")
-            if st.button("📊 Ver Dashboard agora"):
-                st.session_state['pluggy_sucesso'] = False
-                # Força navegação para o dashboard via rerun
-                # (o menu não pode ser alterado diretamente, mas o aviso guia o usuário)
-                st.rerun()
 
         st.markdown("<hr style='border-color: #334155;'>", unsafe_allow_html=True)
-
         c_b1, c_b2 = st.columns([3, 1])
         c_b1.markdown("#### Bancos Ativos")
-
         if c_b2.button("🔄 Sincronizar Novo Banco", type="primary"):
             with st.spinner("A comunicar com os servidores da Pluggy..."):
                 sucesso, msg = sincronizar_ultimo_banco(st.session_state['usuario_id'])
@@ -478,7 +453,7 @@ connect.init();
                     deletar_conexao(cx[0])
                     st.rerun()
 
-    # --- TELA: DASHBOARD ---
+    # --- DASHBOARD ---
     elif menu == "📊 Dashboard":
         st.markdown("<h2 style='color: #e2e8f0;'>📊 Resumo Financeiro</h2>", unsafe_allow_html=True)
 
@@ -489,60 +464,198 @@ connect.init();
             bancos_dict = {f"{c[2]} ({c[1][:5]})": c[1] for c in conexoes}
             sel_banco = st.selectbox("Selecione a conta para visualizar:", list(bancos_dict.keys()))
 
-            with st.spinner("Sincronizando dados com o banco..."):
-                dados = buscar_dados_reais(bancos_dict[sel_banco])
+            with st.spinner("Carregando dados bancários..."):
+                resultado = buscar_dados_reais(bancos_dict[sel_banco])
 
-            if isinstance(dados, list):
-                df = pd.DataFrame(dados)
-                df['date'] = pd.to_datetime(df['date']).dt.tz_localize(None)
-                df['amount'] = pd.to_numeric(df['amount'])
-                df['category'] = df['category'].apply(
-                    lambda x: TRADUCAO_CATEGORIAS.get(str(x).upper(), "Outros")
-                )
-
-                st.sidebar.markdown("<hr style='border-color: #334155;'>", unsafe_allow_html=True)
-                st.sidebar.markdown("#### Filtros de Período")
-                d1 = st.sidebar.date_input("Data de Início", df['date'].min())
-                d2 = st.sidebar.date_input("Data de Fim", df['date'].max())
-
-                df_f = df[(df['date'].dt.date >= d1) & (df['date'].dt.date <= d2)]
-                in_v = df_f[df_f['amount'] > 0]['amount'].sum()
-                out_v = df_f[df_f['amount'] < 0]['amount'].sum()
-                saldo = in_v + out_v
-
-                m1, m2, m3 = st.columns(3)
-                m1.metric("⬇️ Entradas", f"R$ {in_v:,.2f}", delta_color="normal")
-                m2.metric("⬆️ Saídas", f"R$ {abs(out_v):,.2f}", delta_color="inverse")
-                m3.metric("💰 Saldo Líquido", f"R$ {saldo:,.2f}")
-
-                st.markdown("<br>", unsafe_allow_html=True)
-                grafico_cores = ['#0ea5e9', '#8b5cf6', '#10b981', '#f59e0b', '#f43f5e', '#64748b']
-
-                col_g1, col_g2 = st.columns(2)
-                with col_g1:
-                    st.markdown("<h5 style='color: #e2e8f0;'>Gastos por Categoria</h5>", unsafe_allow_html=True)
-                    df_gastos = df_f[df_f['amount'] < 0]
-                    fig_p = px.pie(df_gastos, values=df_gastos['amount'].abs(), names='category', hole=0.4, color_discrete_sequence=grafico_cores)
-                    fig_p.update_layout(margin=dict(t=10, b=10, l=10, r=10), showlegend=True, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#e2e8f0'))
-                    st.plotly_chart(fig_p, use_container_width=True)
-
-                with col_g2:
-                    st.markdown("<h5 style='color: #e2e8f0;'>Evolução do Caixa</h5>", unsafe_allow_html=True)
-                    df_day = df_f.groupby(df_f['date'].dt.date)['amount'].sum().reset_index()
-                    fig_l = px.area(df_day, x='date', y='amount', line_shape='spline', color_discrete_sequence=['#0ea5e9'])
-                    fig_l.update_layout(margin=dict(t=10, b=10, l=10, r=10), xaxis_title=None, yaxis_title=None, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font=dict(color='#e2e8f0'))
-                    fig_l.update_xaxes(showgrid=False)
-                    fig_l.update_yaxes(gridcolor='#334155')
-                    st.plotly_chart(fig_l, use_container_width=True)
-
-                st.markdown("<h5 style='color: #e2e8f0;'>Extrato Recente</h5>", unsafe_allow_html=True)
-                st.dataframe(df_f[['date', 'description', 'amount', 'category']].sort_values('date', ascending=False), use_container_width=True, hide_index=True)
-
-                c_ex1, c_ex2, _ = st.columns([1, 1, 4])
-                c_ex1.download_button("📊 Baixar Excel", gerar_excel(df_f, in_v, out_v, saldo), "extrato.xlsx")
-                c_ex2.download_button("📄 Baixar PDF", gerar_pdf(df_f, in_v, out_v, saldo), "relatorio.pdf")
-
-            elif dados == "SEM_CONTAS":
+            if resultado[0] == "SEM_CONTAS":
                 st.warning("Este banco não possui contas associadas ainda.")
+            elif resultado[0] == "ERRO_DADOS":
+                st.error("Não foi possível carregar os dados deste banco. Tente novamente.")
             else:
-                st.error("Não foi possível carregar os dados deste banco.")
+                trans, info_contas = resultado
+
+                if not trans:
+                    st.info("Nenhuma transação encontrada para este período.")
+                else:
+                    # --- CONSTRUÇÃO DO DATAFRAME ---
+                    df = pd.DataFrame(trans)
+
+                    # Data
+                    df['date'] = pd.to_datetime(df['date']).dt.tz_localize(None)
+
+                    # Amount — garantir numérico
+                    df['amount'] = pd.to_numeric(df['amount'], errors='coerce').fillna(0)
+
+                    # Categoria — tratamento robusto
+                    if 'category' in df.columns:
+                        df['categoria'] = df['category'].apply(traduzir_categoria)
+                    else:
+                        df['categoria'] = 'Outros'
+
+                    # Tipo de transação baseado no sinal do amount
+                    # Pluggy: DEBIT = amount negativo, CREDIT = amount positivo
+                    # Verificamos também o campo 'type' se existir para confirmar
+                    if 'type' in df.columns:
+                        df['tipo'] = df['type'].apply(lambda x: 'Entrada' if str(x).upper() == 'CREDIT' else 'Saída')
+                    else:
+                        df['tipo'] = df['amount'].apply(lambda x: 'Entrada' if x > 0 else 'Saída')
+
+                    df['valor_abs'] = df['amount'].abs()
+
+                    # --- FILTROS NA SIDEBAR ---
+                    st.sidebar.markdown("<hr style='border-color: #334155;'>", unsafe_allow_html=True)
+                    st.sidebar.markdown("#### 🔍 Filtros")
+
+                    d1 = st.sidebar.date_input("Data de Início", df['date'].min().date())
+                    d2 = st.sidebar.date_input("Data de Fim", df['date'].max().date())
+
+                    # Filtro por categoria
+                    categorias_disponiveis = sorted(df['categoria'].unique().tolist())
+                    cats_selecionadas = st.sidebar.multiselect(
+                        "Categorias",
+                        options=categorias_disponiveis,
+                        default=categorias_disponiveis,
+                        placeholder="Todas as categorias"
+                    )
+
+                    # Filtro por tipo
+                    tipo_filtro = st.sidebar.radio(
+                        "Tipo de Movimentação",
+                        ["Todos", "Apenas Entradas", "Apenas Saídas"],
+                        index=0
+                    )
+
+                    # Aplica filtros
+                    df_f = df[
+                        (df['date'].dt.date >= d1) &
+                        (df['date'].dt.date <= d2)
+                    ]
+                    if cats_selecionadas:
+                        df_f = df_f[df_f['categoria'].isin(cats_selecionadas)]
+                    if tipo_filtro == "Apenas Entradas":
+                        df_f = df_f[df_f['tipo'] == 'Entrada']
+                    elif tipo_filtro == "Apenas Saídas":
+                        df_f = df_f[df_f['tipo'] == 'Saída']
+
+                    if df_f.empty:
+                        st.warning("Nenhuma transação encontrada com os filtros selecionados.")
+                    else:
+                        # --- MÉTRICAS ---
+                        entradas = df_f[df_f['tipo'] == 'Entrada']['valor_abs'].sum()
+                        saidas = df_f[df_f['tipo'] == 'Saída']['valor_abs'].sum()
+                        saldo = entradas - saidas
+                        total_trans = len(df_f)
+
+                        m1, m2, m3, m4 = st.columns(4)
+                        m1.metric("⬇️ Entradas", f"R$ {entradas:,.2f}")
+                        m2.metric("⬆️ Saídas", f"R$ {saidas:,.2f}")
+                        m3.metric("💰 Saldo Líquido", f"R$ {saldo:,.2f}")
+                        m4.metric("📋 Transações", f"{total_trans}")
+
+                        # Saldo das contas bancárias reais
+                        if info_contas:
+                            st.markdown("<br>", unsafe_allow_html=True)
+                            st.markdown("<h5 style='color:#94a3b8;'>💳 Saldo Atual nas Contas</h5>", unsafe_allow_html=True)
+                            cols_contas = st.columns(len(info_contas))
+                            for idx, conta in enumerate(info_contas):
+                                cols_contas[idx].metric(
+                                    f"{'💳' if conta['tipo']=='CREDIT' else '🏦'} {conta['nome']}",
+                                    f"R$ {conta['saldo']:,.2f}"
+                                )
+
+                        st.markdown("<br>", unsafe_allow_html=True)
+
+                        grafico_cores = ['#0ea5e9', '#8b5cf6', '#10b981', '#f59e0b', '#f43f5e', '#64748b', '#ec4899', '#14b8a6', '#f97316', '#a78bfa']
+
+                        col_g1, col_g2 = st.columns(2)
+
+                        with col_g1:
+                            st.markdown("<h5 style='color: #e2e8f0;'>💸 Gastos por Categoria</h5>", unsafe_allow_html=True)
+                            df_saidas = df_f[df_f['tipo'] == 'Saída']
+                            if not df_saidas.empty:
+                                cat_group = df_saidas.groupby('categoria')['valor_abs'].sum().reset_index()
+                                cat_group = cat_group.sort_values('valor_abs', ascending=False)
+                                fig_p = px.pie(
+                                    cat_group,
+                                    values='valor_abs',
+                                    names='categoria',
+                                    hole=0.4,
+                                    color_discrete_sequence=grafico_cores
+                                )
+                                fig_p.update_traces(textposition='inside', textinfo='percent+label')
+                                fig_p.update_layout(
+                                    margin=dict(t=10, b=10, l=10, r=10),
+                                    showlegend=True,
+                                    legend=dict(font=dict(color='#94a3b8'), bgcolor='rgba(0,0,0,0)'),
+                                    paper_bgcolor='rgba(0,0,0,0)',
+                                    plot_bgcolor='rgba(0,0,0,0)',
+                                    font=dict(color='#e2e8f0')
+                                )
+                                st.plotly_chart(fig_p, use_container_width=True)
+                            else:
+                                st.info("Nenhuma saída no período filtrado.")
+
+                        with col_g2:
+                            st.markdown("<h5 style='color: #e2e8f0;'>📈 Evolução do Caixa</h5>", unsafe_allow_html=True)
+                            df_day = df_f.copy()
+                            df_day['valor_sinal'] = df_day.apply(
+                                lambda r: r['valor_abs'] if r['tipo'] == 'Entrada' else -r['valor_abs'], axis=1
+                            )
+                            df_day_grp = df_day.groupby(df_day['date'].dt.date)['valor_sinal'].sum().reset_index()
+                            df_day_grp.columns = ['date', 'amount']
+                            df_day_grp['saldo_acumulado'] = df_day_grp['amount'].cumsum()
+
+                            fig_l = px.area(
+                                df_day_grp, x='date', y='saldo_acumulado',
+                                line_shape='spline',
+                                color_discrete_sequence=['#0ea5e9'],
+                                labels={'saldo_acumulado': 'Saldo Acumulado', 'date': 'Data'}
+                            )
+                            fig_l.update_layout(
+                                margin=dict(t=10, b=10, l=10, r=10),
+                                xaxis_title=None, yaxis_title="R$",
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                plot_bgcolor='rgba(0,0,0,0)',
+                                font=dict(color='#e2e8f0'),
+                                yaxis=dict(gridcolor='#334155', tickprefix='R$ ')
+                            )
+                            fig_l.update_xaxes(showgrid=False)
+                            st.plotly_chart(fig_l, use_container_width=True)
+
+                        # Gráfico de barras: entradas vs saídas por mês
+                        st.markdown("<h5 style='color: #e2e8f0;'>📊 Entradas vs Saídas por Mês</h5>", unsafe_allow_html=True)
+                        df_mensal = df_f.copy()
+                        df_mensal['mes'] = df_mensal['date'].dt.to_period('M').astype(str)
+                        df_mensal_grp = df_mensal.groupby(['mes', 'tipo'])['valor_abs'].sum().reset_index()
+                        fig_bar = px.bar(
+                            df_mensal_grp, x='mes', y='valor_abs', color='tipo',
+                            barmode='group',
+                            color_discrete_map={'Entrada': '#10b981', 'Saída': '#f43f5e'},
+                            labels={'valor_abs': 'Valor (R$)', 'mes': 'Mês', 'tipo': 'Tipo'}
+                        )
+                        fig_bar.update_layout(
+                            margin=dict(t=10, b=10, l=10, r=10),
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            font=dict(color='#e2e8f0'),
+                            legend=dict(font=dict(color='#94a3b8'), bgcolor='rgba(0,0,0,0)'),
+                            yaxis=dict(gridcolor='#334155', tickprefix='R$ '),
+                            xaxis=dict(showgrid=False)
+                        )
+                        st.plotly_chart(fig_bar, use_container_width=True)
+
+                        # --- EXTRATO ---
+                        st.markdown("<h5 style='color: #e2e8f0;'>🧾 Extrato Detalhado</h5>", unsafe_allow_html=True)
+
+                        df_extrato = df_f[['date', 'description', 'valor_abs', 'tipo', 'categoria']].copy()
+                        df_extrato = df_extrato.sort_values('date', ascending=False)
+                        df_extrato.columns = ['Data', 'Descrição', 'Valor (R$)', 'Tipo', 'Categoria']
+                        df_extrato['Valor (R$)'] = df_extrato['Valor (R$)'].round(2)
+                        df_extrato['Data'] = df_extrato['Data'].dt.strftime('%d/%m/%Y %H:%M')
+
+                        st.dataframe(df_extrato, use_container_width=True, hide_index=True)
+
+                        c_ex1, c_ex2, _ = st.columns([1, 1, 4])
+                        df_export = df_extrato.copy()
+                        c_ex1.download_button("📊 Baixar Excel", gerar_excel(df_export, entradas, saidas, saldo), "extrato.xlsx")
+                        c_ex2.download_button("📄 Baixar PDF", gerar_pdf(df_export, entradas, saidas, saldo), "relatorio.pdf")
