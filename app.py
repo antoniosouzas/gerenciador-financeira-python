@@ -171,15 +171,6 @@ def gerar_connect_token():
     response_token = requests.post("https://api.pluggy.ai/connect_token", headers=headers, json={}, timeout=10)
     return response_token.json().get("accessToken")
 
-# -------------------------------------------------------
-# FUNÇÃO PRINCIPAL DE DADOS — corrigida
-# A Pluggy retorna transações com:
-#   amount NEGATIVO = DÉBITO (saída de dinheiro)
-#   amount POSITIVO = CRÉDITO (entrada de dinheiro)
-# Mantemos esse padrão e exibimos corretamente.
-# A categoria vem em 'category' como string simples (ex: "FOOD_AND_DRINK")
-# ou dentro de um dict. Tratamos ambos os casos.
-# -------------------------------------------------------
 @st.cache_data(ttl=3600)
 def buscar_dados_reais(item_id):
     try:
@@ -191,7 +182,6 @@ def buscar_dados_reais(item_id):
         if not contas:
             return "SEM_CONTAS", []
         
-        # Pega saldo de todas as contas
         info_contas = []
         for c in contas:
             info_contas.append({
@@ -201,7 +191,6 @@ def buscar_dados_reais(item_id):
                 "id": c.get("id")
             })
         
-        # Busca transações da primeira conta
         conta_id = contas[0].get("id")
         trans_resp = requests.get(
             f"https://api.pluggy.ai/transactions?accountId={conta_id}&pageSize=500",
@@ -212,10 +201,7 @@ def buscar_dados_reais(item_id):
     except Exception as e:
         return "ERRO_DADOS", []
 
-# Mapeamento robusto de categorias da Pluggy
-# A API pode retornar string simples ou com underscores
 TRADUCAO_CATEGORIAS = {
-    # Padrão com underscore (mais comum na Pluggy v2)
     'FOOD_AND_DRINK': 'Alimentação',
     'GROCERIES': 'Supermercado',
     'SHOPPING': 'Compras',
@@ -236,7 +222,6 @@ TRADUCAO_CATEGORIAS = {
     'INSURANCE': 'Seguro',
     'HOME': 'Casa',
     'UNCATEGORIZED': 'Outros',
-    # Padrão com espaço (API v1 legada)
     'FOOD AND DRINK': 'Alimentação',
     'PERSONAL CARE': 'Cuidados Pessoais',
     'BANK FEES': 'Tarifas Bancárias',
@@ -244,24 +229,14 @@ TRADUCAO_CATEGORIAS = {
 }
 
 def traduzir_categoria(cat_raw):
-    """Extrai e traduz categoria independente do formato retornado pela Pluggy."""
     if cat_raw is None:
         return 'Outros'
-    # Se vier como dict (ex: {"id": 1, "description": "FOOD_AND_DRINK"})
     if isinstance(cat_raw, dict):
         cat_raw = cat_raw.get('description', cat_raw.get('name', 'UNCATEGORIZED'))
     cat_str = str(cat_raw).upper().strip()
     return TRADUCAO_CATEGORIAS.get(cat_str, cat_str.replace('_', ' ').title() if cat_str else 'Outros')
 
-def gerar_excel(df, total_in, total_out, saldo):
-    """
-    Gera Excel formatado com:
-    - Aba 'Resumo' com totais
-    - Aba 'Extrato' com todas as transações formatadas
-    - Cores nas linhas de entrada/saída
-    - Colunas com largura ajustada
-    - Cabeçalho em negrito
-    """
+def gerar_excel(df, total_in, total_out, saldo, total_cartao):
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         wb = writer.book
@@ -275,8 +250,6 @@ def gerar_excel(df, total_in, total_out, saldo):
         fmt_saida     = wb.add_format({'bg_color': '#fee2e2', 'font_color': '#7f1d1d', 'border': 1, 'font_size': 10})
         fmt_moeda_in  = wb.add_format({'num_format': 'R$ #,##0.00', 'bg_color': '#d1fae5', 'font_color': '#065f46', 'border': 1, 'font_size': 10, 'align': 'right'})
         fmt_moeda_out = wb.add_format({'num_format': 'R$ #,##0.00', 'bg_color': '#fee2e2', 'font_color': '#7f1d1d', 'border': 1, 'font_size': 10, 'align': 'right'})
-        fmt_zebra     = wb.add_format({'bg_color': '#f8fafc', 'border': 1, 'font_size': 10})
-        fmt_zebra_m   = wb.add_format({'num_format': 'R$ #,##0.00', 'bg_color': '#f8fafc', 'border': 1, 'font_size': 10, 'align': 'right'})
 
         # ---- ABA RESUMO ----
         ws_res = wb.add_worksheet('Resumo')
@@ -288,6 +261,7 @@ def gerar_excel(df, total_in, total_out, saldo):
         resumo_dados = [
             ('Total de Entradas',    total_in),
             ('Total de Saídas',      total_out),
+            ('Gastos Cartão de Crédito', total_cartao),
             ('Saldo Líquido',        saldo),
             ('Número de Transações', len(df)),
         ]
@@ -300,11 +274,11 @@ def gerar_excel(df, total_in, total_out, saldo):
 
         # ---- ABA EXTRATO ----
         ws = wb.add_worksheet('Extrato')
-        ws.set_column('A:A', 18)  # Data
-        ws.set_column('B:B', 42)  # Descrição
-        ws.set_column('C:C', 16)  # Valor
-        ws.set_column('D:D', 12)  # Tipo
-        ws.set_column('E:E', 22)  # Categoria
+        ws.set_column('A:A', 18)  
+        ws.set_column('B:B', 42)  
+        ws.set_column('C:C', 16)  
+        ws.set_column('D:D', 12)  
+        ws.set_column('E:E', 22)  
         ws.set_row(0, 22)
 
         colunas = list(df.columns)
@@ -326,45 +300,39 @@ def gerar_excel(df, total_in, total_out, saldo):
                 else:
                     ws.write(row_idx, col_idx, str(val) if val is not None else '', fmt_txt)
 
-        # Congela cabeçalho
         ws.freeze_panes(1, 0)
 
     output.seek(0)
     return output.getvalue()
 
 
-def gerar_pdf(df, total_in, total_out, saldo):
-    """
-    Gera PDF completo com:
-    - Cabeçalho com título e data de geração
-    - Tabela de resumo (entradas, saídas, saldo, nº transações)
-    - Tabela de transações completa com todas as linhas do período
-    - Cores alternadas nas linhas
-    - Categorias já traduzidas (vêm do df_extrato que já está traduzido)
-    """
+def gerar_pdf(df, total_in, total_out, saldo, total_cartao):
     from datetime import datetime
 
-    pdf = FPDF(orientation='L', unit='mm', format='A4')  # Landscape para caber as colunas
+    pdf = FPDF(orientation='L', unit='mm', format='A4') 
     pdf.set_auto_page_break(auto=True, margin=12)
     pdf.add_page()
 
-    largura_pagina = 277  # A4 landscape útil
+    largura_pagina = 277 
+
+    data_fim = df['Data'].iloc[0][:10] if not df.empty else 'N/A'
+    data_inicio = df['Data'].iloc[-1][:10] if not df.empty else 'N/A'
 
     # --- CABEÇALHO ---
-    pdf.set_fill_color(15, 23, 42)   # #0f172a
+    pdf.set_fill_color(15, 23, 42) 
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("helvetica", 'B', 16)
-    pdf.cell(largura_pagina, 12, "Relatório Financeiro — Auxiliador da Iandra", ln=False, align='C', fill=True)
+    pdf.cell(largura_pagina, 12, "Relatorio Financeiro - Auxiliador da Iandra", ln=False, align='C', fill=True)
     pdf.ln(12)
 
     pdf.set_font("helvetica", '', 9)
     pdf.set_text_color(100, 116, 139)
-    pdf.cell(largura_pagina, 6, f"Gerado em {datetime.now().strftime('%d/%m/%Y às %H:%M')}  |  Período: {df['Data'].iloc[-1]} a {df['Data'].iloc[0]}", ln=True, align='C')
+    pdf.cell(largura_pagina, 6, f"Gerado em {datetime.now().strftime('%d/%m/%Y às %H:%M')}  |  Período: {data_inicio} a {data_fim}", ln=True, align='C')
     pdf.ln(4)
 
     # --- RESUMO ---
     pdf.set_font("helvetica", 'B', 10)
-    pdf.set_fill_color(2, 132, 199)   # azul
+    pdf.set_fill_color(2, 132, 199) 
     pdf.set_text_color(255, 255, 255)
     pdf.cell(largura_pagina, 8, "  Resumo do Período", ln=True, fill=True)
     pdf.ln(1)
@@ -372,9 +340,11 @@ def gerar_pdf(df, total_in, total_out, saldo):
     resumo = [
         ("Total de Entradas",    f"R$ {total_in:,.2f}",  (209, 250, 229), (6, 95, 70)),
         ("Total de Saídas",      f"R$ {total_out:,.2f}", (254, 226, 226), (127, 29, 29)),
+        ("Cartão de Crédito",    f"R$ {total_cartao:,.2f}", (254, 215, 170), (154, 52, 18)),
         ("Saldo Líquido",        f"R$ {saldo:,.2f}",     (224, 242, 254), (12, 74, 110)),
-        ("Transações no período",f"{len(df)}",           (248, 250, 252), (51, 65, 85)),
+        ("Transações",           f"{len(df)}",           (248, 250, 252), (51, 65, 85)),
     ]
+    
     col_w = largura_pagina / 2
     for i in range(0, len(resumo), 2):
         for j in range(2):
@@ -397,10 +367,8 @@ def gerar_pdf(df, total_in, total_out, saldo):
     pdf.cell(largura_pagina, 8, f"  Extrato de Transações ({len(df)} registros)", ln=True, fill=True)
     pdf.ln(1)
 
-    # Cabeçalho da tabela
-    col_widths = [32, 90, 28, 22, 42, 30]  # Data, Descrição, Valor, Tipo, Categoria (ajuste se tiver mais cols)
+    col_widths = [32, 90, 28, 22, 42, 30] 
     headers = list(df.columns)
-    # Garante que só usa as colunas que existem no df
     col_widths = col_widths[:len(headers)]
     while len(col_widths) < len(headers):
         col_widths.append(30)
@@ -413,7 +381,6 @@ def gerar_pdf(df, total_in, total_out, saldo):
         pdf.cell(w, 7, f" {h}", border=1, fill=True)
     pdf.ln()
 
-    # Linhas
     pdf.set_font("helvetica", '', 8)
     pdf.set_draw_color(203, 213, 225)
 
@@ -422,16 +389,12 @@ def gerar_pdf(df, total_in, total_out, saldo):
         is_entrada = tipo == 'Entrada'
 
         if is_entrada:
-            pdf.set_fill_color(209, 250, 229)
-            pdf.set_text_color(6, 95, 70)
+            pdf.set_fill_color(209, 250, 229); pdf.set_text_color(6, 95, 70)
         elif i % 2 == 0:
-            pdf.set_fill_color(248, 250, 252)
-            pdf.set_text_color(30, 41, 59)
+            pdf.set_fill_color(248, 250, 252); pdf.set_text_color(30, 41, 59)
         else:
-            pdf.set_fill_color(241, 245, 249)
-            pdf.set_text_color(30, 41, 59)
+            pdf.set_fill_color(241, 245, 249); pdf.set_text_color(30, 41, 59)
 
-        # Verifica quebra de página manual
         if pdf.get_y() > 185:
             pdf.add_page()
             pdf.set_font("helvetica", 'B', 8)
@@ -451,15 +414,13 @@ def gerar_pdf(df, total_in, total_out, saldo):
         valores = list(row)
         for val, w in zip(valores, col_widths):
             txt = str(val) if val is not None else ''
-            # Trunca texto longo para caber na célula
             while pdf.get_string_width(f" {txt}") > w - 2 and len(txt) > 3:
                 txt = txt[:-1]
             if len(str(val) if val is not None else '') > len(txt):
-                txt = txt[:-1] + '…'
+                txt = txt[:-1] + '...'
             pdf.cell(w, 6, f" {txt}", border=1, fill=True)
         pdf.ln()
 
-    # --- RODAPÉ ---
     pdf.ln(4)
     pdf.set_font("helvetica", 'I', 8)
     pdf.set_text_color(148, 163, 184)
@@ -676,24 +637,16 @@ connect.init();
                 if not trans:
                     st.info("Nenhuma transação encontrada para este período.")
                 else:
-                    # --- CONSTRUÇÃO DO DATAFRAME ---
                     df = pd.DataFrame(trans)
 
-                    # Data
                     df['date'] = pd.to_datetime(df['date']).dt.tz_localize(None)
-
-                    # Amount — garantir numérico
                     df['amount'] = pd.to_numeric(df['amount'], errors='coerce').fillna(0)
 
-                    # Categoria — tratamento robusto
                     if 'category' in df.columns:
                         df['categoria'] = df['category'].apply(traduzir_categoria)
                     else:
                         df['categoria'] = 'Outros'
 
-                    # Tipo de transação baseado no sinal do amount
-                    # Pluggy: DEBIT = amount negativo, CREDIT = amount positivo
-                    # Verificamos também o campo 'type' se existir para confirmar
                     if 'type' in df.columns:
                         df['tipo'] = df['type'].apply(lambda x: 'Entrada' if str(x).upper() == 'CREDIT' else 'Saída')
                     else:
@@ -708,7 +661,6 @@ connect.init();
                     d1 = st.sidebar.date_input("Data de Início", df['date'].min().date())
                     d2 = st.sidebar.date_input("Data de Fim", df['date'].max().date())
 
-                    # Filtro por categoria
                     categorias_disponiveis = sorted(df['categoria'].unique().tolist())
                     cats_selecionadas = st.sidebar.multiselect(
                         "Categorias",
@@ -717,14 +669,12 @@ connect.init();
                         placeholder="Todas as categorias"
                     )
 
-                    # Filtro por tipo
                     tipo_filtro = st.sidebar.radio(
                         "Tipo de Movimentação",
                         ["Todos", "Apenas Entradas", "Apenas Saídas"],
                         index=0
                     )
 
-                    # Aplica filtros
                     df_f = df[
                         (df['date'].dt.date >= d1) &
                         (df['date'].dt.date <= d2)
@@ -742,6 +692,10 @@ connect.init();
                         # --- MÉTRICAS ---
                         entradas = df_f[df_f['tipo'] == 'Entrada']['valor_abs'].sum()
                         saidas = df_f[df_f['tipo'] == 'Saída']['valor_abs'].sum()
+                        
+                        # NOVA MÉTRICA: Cálculo de cartão de crédito
+                        total_cartao = df_f[(df_f['tipo'] == 'Saída') & (df_f['categoria'] == 'Cartão de Crédito')]['valor_abs'].sum()
+                        
                         saldo = entradas - saidas
                         total_trans = len(df_f)
 
@@ -751,7 +705,6 @@ connect.init();
                         m3.metric("💰 Saldo Líquido", f"R$ {saldo:,.2f}")
                         m4.metric("📋 Transações", f"{total_trans}")
 
-                        # Saldo das contas bancárias reais
                         if info_contas:
                             st.markdown("<br>", unsafe_allow_html=True)
                             st.markdown("<h5 style='color:#94a3b8;'>💳 Saldo Atual nas Contas</h5>", unsafe_allow_html=True)
@@ -821,7 +774,6 @@ connect.init();
                             fig_l.update_xaxes(showgrid=False)
                             st.plotly_chart(fig_l, use_container_width=True)
 
-                        # Gráfico de barras: entradas vs saídas por mês
                         st.markdown("<h5 style='color: #e2e8f0;'>📊 Entradas vs Saídas por Mês</h5>", unsafe_allow_html=True)
                         df_mensal = df_f.copy()
                         df_mensal['mes'] = df_mensal['date'].dt.to_period('M').astype(str)
@@ -856,5 +808,5 @@ connect.init();
 
                         c_ex1, c_ex2, _ = st.columns([1, 1, 4])
                         df_export = df_extrato.copy()
-                        c_ex1.download_button("📊 Baixar Excel", gerar_excel(df_export, entradas, saidas, saldo), "extrato.xlsx")
-                        c_ex2.download_button("📄 Baixar PDF", gerar_pdf(df_export, entradas, saidas, saldo), "relatorio.pdf")
+                        c_ex1.download_button("📊 Baixar Excel", gerar_excel(df_export, entradas, saidas, saldo, total_cartao), "extrato.xlsx")
+                        c_ex2.download_button("📄 Baixar PDF", gerar_pdf(df_export, entradas, saidas, saldo, total_cartao), "relatorio.pdf")
