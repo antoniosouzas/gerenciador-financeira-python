@@ -412,7 +412,6 @@ def gerar_pdf(df, total_in, total_out, saldo, total_cartao):
     pdf.cell(largura_pagina, 8, f"  Extrato de Transações ({len(df)} registros)", ln=True, fill=True)
     pdf.ln(1)
 
-    # Ajustado tamanhos para focar na descrição longa do PIX
     col_widths = [24, 98, 28, 22, 42, 30] 
     headers = list(df.columns)
     col_widths = col_widths[:len(headers)]
@@ -683,37 +682,53 @@ connect.init();
                 if not trans:
                     st.info("Nenhuma transação encontrada para este período.")
                 else:
-                    # --- MELHORANDO A DESCRIÇÃO (PIX E TRANSFERÊNCIAS) ---
+                    # --- CAÇADA AGRESSIVA AOS NOMES (PIX E TRANSFERÊNCIAS) ---
                     for t in trans:
                         desc_original = str(t.get('description', '')).strip()
                         nome_extra = ""
+                        amount = float(t.get('amount', 0)) if t.get('amount') is not None else 0
                         
-                        # Tenta achar nome de loja/estabelecimento
-                        if isinstance(t.get('merchant'), dict) and t['merchant'].get('name'):
-                            nome_extra = t['merchant']['name']
+                        # 1. Tenta pegar do Merchant
+                        if isinstance(t.get('merchant'), dict):
+                            nome_extra = t['merchant'].get('name', '') or t['merchant'].get('businessName', '')
                             
-                        # Tenta achar nome de quem pagou ou recebeu (PIX/Transferência)
-                        elif isinstance(t.get('paymentData'), dict):
+                        # 2. Tenta pegar do PaymentData (padrão Pluggy)
+                        if not nome_extra and isinstance(t.get('paymentData'), dict):
                             pdata = t['paymentData']
-                            amount = float(t.get('amount', 0)) if t.get('amount') is not None else 0
+                            if amount < 0: # Saída
+                                nome_extra = pdata.get('receiverName', '')
+                                if not nome_extra and isinstance(pdata.get('payee'), dict):
+                                    nome_extra = pdata['payee'].get('name', '')
+                                if not nome_extra and isinstance(pdata.get('receiver'), dict):
+                                    nome_extra = pdata['receiver'].get('name', '')
+                            else: # Entrada
+                                nome_extra = pdata.get('payerName', '')
+                                if not nome_extra and isinstance(pdata.get('payer'), dict):
+                                    nome_extra = pdata['payer'].get('name', '')
+                                    
+                        # 3. CARTADA FINAL: descriptionRaw (texto cru do extrato do banco sem filtro)
+                        if not nome_extra and t.get('descriptionRaw'):
+                            raw = str(t['descriptionRaw']).strip()
                             
-                            if amount < 0: # É uma saída (pagamento p/ alguém)
-                                payee = pdata.get('payee', {})
-                                if isinstance(payee, dict) and payee.get('name'):
-                                    nome_extra = f"p/ {payee['name'].title()}"
-                                elif pdata.get('receiverName'):
-                                    nome_extra = f"p/ {pdata['receiverName'].title()}"
-                            else: # É uma entrada (recebeu de alguém)
-                                payer = pdata.get('payer', {})
-                                if isinstance(payer, dict) and payer.get('name'):
-                                    nome_extra = f"de {payer['name'].title()}"
-                                elif pdata.get('payerName'):
-                                    nome_extra = f"de {pdata['payerName'].title()}"
-                        
+                            # Se o raw for diferente da descrição, ele esconde algo
+                            if raw.upper() != desc_original.upper():
+                                # Tira a palavra "Pagamento de pix" se ela existir no raw pra sobrar só o nome
+                                if desc_original.upper() in raw.upper():
+                                    # Substitui e limpa espaços e tracinhos extras
+                                    nome_extra = raw.upper().replace(desc_original.upper(), '').strip(' -/*\\:')
+                                else:
+                                    nome_extra = raw
+
+                        # Formata e junta
                         if nome_extra:
+                            nome_extra = str(nome_extra).title()
+                            # Se o nome puxado ficar bizarramente grande, a gente corta
+                            if len(nome_extra) > 40:
+                                nome_extra = nome_extra[:40] + "..."
                             t['descricao_completa'] = f"{desc_original} ({nome_extra})"
                         else:
                             t['descricao_completa'] = desc_original
+                    # -------------------------------------------------------------
 
                     df = pd.DataFrame(trans)
 
@@ -875,13 +890,11 @@ connect.init();
                         # --- EXTRATO ---
                         st.markdown("<h5 style='color: #e2e8f0;'>🧾 Extrato Detalhado</h5>", unsafe_allow_html=True)
 
-                        # Aqui trocamos para usar a 'descricao_completa' que criamos
                         df_extrato = df_f[['date', 'descricao_completa', 'valor_abs', 'tipo', 'categoria']].copy()
                         df_extrato = df_extrato.sort_values('date', ascending=False)
                         df_extrato.columns = ['Data', 'Descrição', 'Valor (R$)', 'Tipo', 'Categoria']
                         df_extrato['Valor (R$)'] = df_extrato['Valor (R$)'].round(2)
                         
-                        # REMOVIDO o %H:%M para que fique apenas o dia
                         df_extrato['Data'] = df_extrato['Data'].dt.strftime('%d/%m/%Y')
 
                         st.dataframe(df_extrato, use_container_width=True, hide_index=True)
