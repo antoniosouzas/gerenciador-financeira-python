@@ -254,18 +254,217 @@ def traduzir_categoria(cat_raw):
     return TRADUCAO_CATEGORIAS.get(cat_str, cat_str.replace('_', ' ').title() if cat_str else 'Outros')
 
 def gerar_excel(df, total_in, total_out, saldo):
+    """
+    Gera Excel formatado com:
+    - Aba 'Resumo' com totais
+    - Aba 'Extrato' com todas as transações formatadas
+    - Cores nas linhas de entrada/saída
+    - Colunas com largura ajustada
+    - Cabeçalho em negrito
+    """
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Extrato')
+        wb = writer.book
+
+        # --- FORMATOS ---
+        fmt_titulo    = wb.add_format({'bold': True, 'font_size': 14, 'font_color': '#FFFFFF', 'bg_color': '#0f172a', 'align': 'center', 'valign': 'vcenter'})
+        fmt_header    = wb.add_format({'bold': True, 'font_color': '#FFFFFF', 'bg_color': '#0284c7', 'align': 'center', 'valign': 'vcenter', 'border': 1, 'font_size': 11})
+        fmt_resumo_k  = wb.add_format({'bold': True, 'font_color': '#334155', 'bg_color': '#e0f2fe', 'border': 1, 'font_size': 11})
+        fmt_resumo_v  = wb.add_format({'num_format': 'R$ #,##0.00', 'border': 1, 'font_size': 11, 'align': 'right'})
+        fmt_entrada   = wb.add_format({'bg_color': '#d1fae5', 'font_color': '#065f46', 'border': 1, 'font_size': 10})
+        fmt_saida     = wb.add_format({'bg_color': '#fee2e2', 'font_color': '#7f1d1d', 'border': 1, 'font_size': 10})
+        fmt_moeda_in  = wb.add_format({'num_format': 'R$ #,##0.00', 'bg_color': '#d1fae5', 'font_color': '#065f46', 'border': 1, 'font_size': 10, 'align': 'right'})
+        fmt_moeda_out = wb.add_format({'num_format': 'R$ #,##0.00', 'bg_color': '#fee2e2', 'font_color': '#7f1d1d', 'border': 1, 'font_size': 10, 'align': 'right'})
+        fmt_zebra     = wb.add_format({'bg_color': '#f8fafc', 'border': 1, 'font_size': 10})
+        fmt_zebra_m   = wb.add_format({'num_format': 'R$ #,##0.00', 'bg_color': '#f8fafc', 'border': 1, 'font_size': 10, 'align': 'right'})
+
+        # ---- ABA RESUMO ----
+        ws_res = wb.add_worksheet('Resumo')
+        ws_res.set_column('A:A', 28)
+        ws_res.set_column('B:B', 20)
+        ws_res.set_row(0, 30)
+        ws_res.merge_range('A1:B1', 'Resumo Financeiro', fmt_titulo)
+
+        resumo_dados = [
+            ('Total de Entradas',    total_in),
+            ('Total de Saídas',      total_out),
+            ('Saldo Líquido',        saldo),
+            ('Número de Transações', len(df)),
+        ]
+        for i, (label, val) in enumerate(resumo_dados, start=1):
+            ws_res.write(i, 0, label, fmt_resumo_k)
+            if isinstance(val, int):
+                ws_res.write(i, 1, val, wb.add_format({'border': 1, 'font_size': 11, 'align': 'right'}))
+            else:
+                ws_res.write(i, 1, val, fmt_resumo_v)
+
+        # ---- ABA EXTRATO ----
+        ws = wb.add_worksheet('Extrato')
+        ws.set_column('A:A', 18)  # Data
+        ws.set_column('B:B', 42)  # Descrição
+        ws.set_column('C:C', 16)  # Valor
+        ws.set_column('D:D', 12)  # Tipo
+        ws.set_column('E:E', 22)  # Categoria
+        ws.set_row(0, 22)
+
+        colunas = list(df.columns)
+        for col_idx, col_name in enumerate(colunas):
+            ws.write(0, col_idx, col_name, fmt_header)
+
+        for row_idx, (_, row) in enumerate(df.iterrows(), start=1):
+            is_entrada = str(row.get('Tipo', '')).strip() == 'Entrada'
+            fmt_txt = fmt_entrada if is_entrada else fmt_saida
+            fmt_val = fmt_moeda_in if is_entrada else fmt_moeda_out
+
+            for col_idx, col_name in enumerate(colunas):
+                val = row[col_name]
+                if col_name == 'Valor (R$)':
+                    try:
+                        ws.write(row_idx, col_idx, float(val), fmt_val)
+                    except:
+                        ws.write(row_idx, col_idx, 0, fmt_val)
+                else:
+                    ws.write(row_idx, col_idx, str(val) if val is not None else '', fmt_txt)
+
+        # Congela cabeçalho
+        ws.freeze_panes(1, 0)
+
+    output.seek(0)
     return output.getvalue()
 
+
 def gerar_pdf(df, total_in, total_out, saldo):
-    pdf = FPDF()
+    """
+    Gera PDF completo com:
+    - Cabeçalho com título e data de geração
+    - Tabela de resumo (entradas, saídas, saldo, nº transações)
+    - Tabela de transações completa com todas as linhas do período
+    - Cores alternadas nas linhas
+    - Categorias já traduzidas (vêm do df_extrato que já está traduzido)
+    """
+    from datetime import datetime
+
+    pdf = FPDF(orientation='L', unit='mm', format='A4')  # Landscape para caber as colunas
+    pdf.set_auto_page_break(auto=True, margin=12)
     pdf.add_page()
+
+    largura_pagina = 277  # A4 landscape útil
+
+    # --- CABEÇALHO ---
+    pdf.set_fill_color(15, 23, 42)   # #0f172a
+    pdf.set_text_color(255, 255, 255)
     pdf.set_font("helvetica", 'B', 16)
-    pdf.cell(0, 10, "Relatorio Financeiro", ln=True, align='C')
-    pdf.set_font("helvetica", '', 12)
-    pdf.cell(0, 10, f"Entradas: R$ {total_in:.2f} | Saidas: R$ {total_out:.2f} | Saldo: R$ {saldo:.2f}", ln=True, align='C')
+    pdf.cell(largura_pagina, 12, "Relatório Financeiro — Auxiliador da Iandra", ln=False, align='C', fill=True)
+    pdf.ln(12)
+
+    pdf.set_font("helvetica", '', 9)
+    pdf.set_text_color(100, 116, 139)
+    pdf.cell(largura_pagina, 6, f"Gerado em {datetime.now().strftime('%d/%m/%Y às %H:%M')}  |  Período: {df['Data'].iloc[-1]} a {df['Data'].iloc[0]}", ln=True, align='C')
+    pdf.ln(4)
+
+    # --- RESUMO ---
+    pdf.set_font("helvetica", 'B', 10)
+    pdf.set_fill_color(2, 132, 199)   # azul
+    pdf.set_text_color(255, 255, 255)
+    pdf.cell(largura_pagina, 8, "  Resumo do Período", ln=True, fill=True)
+    pdf.ln(1)
+
+    resumo = [
+        ("Total de Entradas",    f"R$ {total_in:,.2f}",  (209, 250, 229), (6, 95, 70)),
+        ("Total de Saídas",      f"R$ {total_out:,.2f}", (254, 226, 226), (127, 29, 29)),
+        ("Saldo Líquido",        f"R$ {saldo:,.2f}",     (224, 242, 254), (12, 74, 110)),
+        ("Transações no período",f"{len(df)}",           (248, 250, 252), (51, 65, 85)),
+    ]
+    col_w = largura_pagina / 2
+    for i in range(0, len(resumo), 2):
+        for j in range(2):
+            if i + j < len(resumo):
+                label, valor, bg, fg = resumo[i + j]
+                pdf.set_fill_color(*bg)
+                pdf.set_draw_color(203, 213, 225)
+                pdf.set_text_color(*fg)
+                pdf.set_font("helvetica", 'B', 9)
+                pdf.cell(col_w * 0.55, 7, f"  {label}", border=1, fill=True)
+                pdf.set_font("helvetica", '', 9)
+                pdf.cell(col_w * 0.45, 7, f"  {valor}", border=1, fill=True, align='R')
+        pdf.ln()
+    pdf.ln(4)
+
+    # --- TABELA DE TRANSAÇÕES ---
+    pdf.set_font("helvetica", 'B', 10)
+    pdf.set_fill_color(2, 132, 199)
+    pdf.set_text_color(255, 255, 255)
+    pdf.cell(largura_pagina, 8, f"  Extrato de Transações ({len(df)} registros)", ln=True, fill=True)
+    pdf.ln(1)
+
+    # Cabeçalho da tabela
+    col_widths = [32, 90, 28, 22, 42, 30]  # Data, Descrição, Valor, Tipo, Categoria (ajuste se tiver mais cols)
+    headers = list(df.columns)
+    # Garante que só usa as colunas que existem no df
+    col_widths = col_widths[:len(headers)]
+    while len(col_widths) < len(headers):
+        col_widths.append(30)
+
+    pdf.set_font("helvetica", 'B', 8)
+    pdf.set_fill_color(30, 41, 59)
+    pdf.set_text_color(226, 232, 240)
+    pdf.set_draw_color(51, 65, 85)
+    for h, w in zip(headers, col_widths):
+        pdf.cell(w, 7, f" {h}", border=1, fill=True)
+    pdf.ln()
+
+    # Linhas
+    pdf.set_font("helvetica", '', 8)
+    pdf.set_draw_color(203, 213, 225)
+
+    for i, row in enumerate(df.itertuples(index=False)):
+        tipo = str(getattr(row, 'Tipo', '')).strip()
+        is_entrada = tipo == 'Entrada'
+
+        if is_entrada:
+            pdf.set_fill_color(209, 250, 229)
+            pdf.set_text_color(6, 95, 70)
+        elif i % 2 == 0:
+            pdf.set_fill_color(248, 250, 252)
+            pdf.set_text_color(30, 41, 59)
+        else:
+            pdf.set_fill_color(241, 245, 249)
+            pdf.set_text_color(30, 41, 59)
+
+        # Verifica quebra de página manual
+        if pdf.get_y() > 185:
+            pdf.add_page()
+            pdf.set_font("helvetica", 'B', 8)
+            pdf.set_fill_color(30, 41, 59)
+            pdf.set_text_color(226, 232, 240)
+            for h, w in zip(headers, col_widths):
+                pdf.cell(w, 7, f" {h}", border=1, fill=True)
+            pdf.ln()
+            pdf.set_font("helvetica", '', 8)
+            if is_entrada:
+                pdf.set_fill_color(209, 250, 229); pdf.set_text_color(6, 95, 70)
+            elif i % 2 == 0:
+                pdf.set_fill_color(248, 250, 252); pdf.set_text_color(30, 41, 59)
+            else:
+                pdf.set_fill_color(241, 245, 249); pdf.set_text_color(30, 41, 59)
+
+        valores = list(row)
+        for val, w in zip(valores, col_widths):
+            txt = str(val) if val is not None else ''
+            # Trunca texto longo para caber na célula
+            while pdf.get_string_width(f" {txt}") > w - 2 and len(txt) > 3:
+                txt = txt[:-1]
+            if len(str(val) if val is not None else '') > len(txt):
+                txt = txt[:-1] + '…'
+            pdf.cell(w, 6, f" {txt}", border=1, fill=True)
+        pdf.ln()
+
+    # --- RODAPÉ ---
+    pdf.ln(4)
+    pdf.set_font("helvetica", 'I', 8)
+    pdf.set_text_color(148, 163, 184)
+    pdf.cell(largura_pagina, 5, "Documento gerado automaticamente pelo Auxiliador Financeiro da Iandra.", align='C')
+
     return bytes(pdf.output())
 
 # ==========================================
