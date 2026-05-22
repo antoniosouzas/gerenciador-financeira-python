@@ -58,7 +58,7 @@ if 'usuario_id' not in st.session_state: st.session_state['usuario_id'] = None
 if 'is_admin' not in st.session_state: st.session_state['is_admin'] = False
 if 'abrir_pluggy' not in st.session_state: st.session_state['abrir_pluggy'] = False
 
-# --- FUNÇÕES DE BASE DE DADOS (AGORA COM SUPABASE) ---
+# --- FUNÇÕES DE BASE DE DADOS ---
 def get_db_connection():
     return psycopg2.connect(DATABASE_URL)
 
@@ -198,6 +198,21 @@ if not st.session_state['logado']:
 # ÁREA LOGADA
 # ==========================================
 else:
+    # 🚨 CORREÇÃO CRÍTICA: Captura global do parâmetro de URL logo após o login
+    if 'novo_item_id' in st.query_params:
+        novo_id = st.query_params['novo_item_id']
+        # Remove temporariamente o parâmetro para evitar loops
+        st.query_params.clear()
+        
+        # Salva no Supabase imediatamente
+        sucesso = salvar_conexao(st.session_state['usuario_id'], novo_id, "Conta Conectada")
+        if sucesso:
+            st.toast("✅ Banco de dados sincronizado com sucesso!", icon="💾")
+        else:
+            st.error("❌ Falha crítica: Não foi possível salvar a conexão no Supabase.")
+        st.rerun()
+
+    # Construção da Barra Lateral
     with st.sidebar:
         st.markdown(f"### Olá, <span style='color: #38bdf8;'>{st.session_state['usuario_nome']}</span> 👋", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
@@ -254,22 +269,14 @@ else:
                     <script src="https://cdn.pluggy.ai/pluggy-connect/v2.8.2/pluggy-connect.js"></script>
                     <div id="pluggy-area"></div>
                     <script>
-                        const connect = new PluggyConnect({{
+                        const connect = new PluggyConnect({
                             connectToken: '{token}',
-                            onSuccess: (data) => {{ window.parent.location.href = '/?novo_item_id=' + data.item.id; }},
-                            onClose: () => {{ document.getElementById('pluggy-area').innerHTML = 'Conexão encerrada.'; }}
-                        }});
+                            onSuccess: (data) => { window.parent.location.href = '/?novo_item_id=' + data.item.id; },
+                            onClose: () => { document.getElementById('pluggy-area').innerHTML = 'Conexão encerrada.'; }
+                        });
                         connect.init();
                     </script>
                 """, height=600)
-
-        # Processar nova conexão se houver parâmetro na URL
-        if 'novo_item_id' in st.query_params:
-            novo_id = st.query_params['novo_item_id']
-            salvar_conexao(st.session_state['usuario_id'], novo_id, "Conta Adicionada Recentemente")
-            st.query_params.clear()
-            st.success("✅ Banco conectado com sucesso!")
-            st.rerun()
 
         st.markdown("<hr style='border-color: #334155;'>", unsafe_allow_html=True)
         st.markdown("#### Bancos Ativos")
@@ -279,7 +286,7 @@ else:
         else:
             for i, cx in enumerate(conexoes):
                 c1, c2 = st.columns([7, 1])
-                c1.info(f"🏦 {cx[2]} | Adicionado em {str(cx[3])[:10]}")
+                c1.info(f"🏦 {cx[2]} | ID de Conexão: {cx[1][:15]}...")
                 if c2.button("🗑", key=f"del_cx_{i}"):
                     deletar_conexao(cx[0])
                     st.rerun()
