@@ -14,76 +14,129 @@ st.set_page_config(page_title="Auxiliador da Iandra", layout="wide", page_icon="
 
 st.markdown("""
     <style>
-    .stApp { background-color: #0f172a; }
-    [data-testid="stSidebar"] { background-color: #1e293b !important; border-right: 1px solid #334155; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Fundo Geral - Estilo Nova Days */
+    .stApp { background-color: #0b0e14; }
+
+    /* Barra Lateral */
+    [data-testid="stSidebar"] { 
+        background-color: #13161f !important; 
+        border-right: 1px solid #1f232e !important;
+    }
+
     #MainMenu {visibility: hidden;}
     header {visibility: hidden;}
     footer {visibility: hidden;}
-    
-    [data-testid="stForm"], [data-testid="stMetricContainer"] {
-        background-color: #1e293b !important; border: 1px solid #334155 !important;
-        border-radius: 16px !important; padding: 20px !important; box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important;
-    }
-    [data-testid="stMetricValue"] { color: #e2e8f0 !important; }
-    
-    /* Botões Padrões */
-    div.stButton > button:first-child {
-        background-color: #0284c7 !important; color: #ffffff !important; border-radius: 10px !important;
-        padding: 0.5rem 2rem !important; font-weight: 500 !important; border: 1px solid #0369a1 !important;
-        transition: all 0.3s ease; width: 100%;
-    }
-    div.stButton > button:first-child:hover { background-color: #0369a1 !important; border-color: #0ea5e9 !important; }
-    
-    .connect-btn button { background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%) !important; border: none !important; height: 3.5rem !important; font-size: 1.1rem !important; }
-    
+
+    /* Títulos principais e Textos */
+    h1, h2, h3, h4, h5, h6, p { color: #ffffff !important; }
+
     /* ==================================================
-       NOVO VISUAL: Botões de navegação lateral (st.radio) 
+       NOVO VISUAL: Menu Lateral (Roxo vibrante) 
        ================================================== */
-    div[role="radiogroup"] { gap: 8px; }
+    div[role="radiogroup"] { gap: 10px; }
     div[role="radiogroup"] > label {
         background-color: transparent !important; 
-        border-radius: 8px !important; 
-        padding: 10px 15px !important;
+        border-radius: 10px !important; 
+        padding: 12px 20px !important;
         border: none !important; 
-        border-left: 3px solid transparent !important; /* Borda invisível por padrão */
         cursor: pointer; 
-        transition: all 0.2s ease;
+        transition: all 0.3s ease;
     }
     div[role="radiogroup"] > label:hover { 
-        background-color: rgba(255, 255, 255, 0.05) !important; /* Leve brilho ao passar o mouse */
+        background-color: #1c202a !important; 
     }
-    /* Estilo do item selecionado */
     div[role="radiogroup"] > label[data-checked="true"] { 
-        background-color: rgba(14, 165, 233, 0.1) !important; /* Fundo azul bem clarinho/transparente */
-        border-left: 3px solid #0ea5e9 !important; /* Linha azul na esquerda */
+        background-color: #6347f2 !important; /* Roxo da imagem Nova Days */
     }
     div[role="radiogroup"] > label[data-checked="true"] p {
-        color: #38bdf8 !important; /* Texto azul claro quando selecionado */
+        color: #ffffff !important; 
         font-weight: 600 !important;
+    }
+    div[role="radiogroup"] > label p {
+        color: #838a9b !important; /* Cinza claro para itens inativos */
+        font-weight: 500 !important;
+        font-size: 1.05rem !important;
     }
 
     /* ==================================================
-       NOVO VISUAL: Caixas de Opções, Datas e Inputs 
+       NOVO VISUAL: Cartões das Métricas 
+       ================================================== */
+    [data-testid="stMetricContainer"], [data-testid="stForm"] {
+        background-color: #161922 !important; 
+        border: 1px solid #232733 !important;
+        border-radius: 16px !important; 
+        padding: 24px !important; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+    }
+    [data-testid="stMetricLabel"] p {
+        color: #838a9b !important; /* Texto cinza no título do cartão */
+        font-size: 0.9rem !important;
+        font-weight: 500 !important;
+    }
+    [data-testid="stMetricValue"] div { 
+        color: #ffffff !important; /* Valores em branco destaque */
+        font-weight: 700 !important;
+        font-size: 1.8rem !important;
+    }
+
+    /* ==================================================
+       NOVO VISUAL: Inputs e Filtros 
        ================================================== */
     .stTextInput input, .stDateInput input, [data-baseweb="select"] > div {
-        background-color: #1e293b !important; 
-        color: #e2e8f0 !important; 
-        border: 1px solid #475569 !important; 
+        background-color: #161922 !important; 
+        color: #ffffff !important; 
+        border: 1px solid #232733 !important; 
         border-radius: 8px !important;
-        transition: all 0.3s ease;
     }
-    /* Efeito de Foco (quando clica na caixa) */
     .stTextInput input:focus, .stDateInput input:focus, [data-baseweb="select"] > div:focus-within {
-        border-color: #0ea5e9 !important;
-        box-shadow: 0 0 0 1px #0ea5e9 !important;
+        border-color: #6347f2 !important;
     }
-    /* Estilo das "Tags" selecionadas no Multiselect de categorias */
+    /* Tags selecionadas no filtro */
     span[data-baseweb="tag"] {
-        background-color: #0284c7 !important;
+        background-color: #6347f2 !important;
         color: white !important;
         border-radius: 6px !important;
+    }
+
+    /* Tabelas */
+    [data-testid="stDataFrame"] {
+        background-color: #161922 !important;
+        border-radius: 16px !important;
+        border: 1px solid #232733 !important;
+        padding: 10px !important;
+    }
+    
+    /* Botões */
+    .stButton > button {
+        background-color: #161922 !important; 
+        color: #ffffff !important; 
+        border-radius: 8px !important;
+        padding: 0.5rem 1.5rem !important; 
+        font-weight: 500 !important; 
+        border: 1px solid #232733 !important;
+        transition: all 0.3s ease; 
+        width: 100%;
+    }
+    .stButton > button:hover { 
+        border-color: #6347f2 !important; 
+        color: #6347f2 !important; 
+    }
+    /* Botões de Destaque */
+    .stButton > button[kind="primary"] {
+        background-color: #6347f2 !important;
+        color: #ffffff !important;
         border: none !important;
     }
+    .stButton > button[kind="primary"]:hover {
+        background-color: #5136d9 !important;
+    }
+    .connect-btn button { background: linear-gradient(135deg, #6347f2 0%, #4a2ec6 100%) !important; border: none !important; height: 3.5rem !important; font-size: 1.1rem !important; color: white !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -257,10 +310,12 @@ TRADUCAO_CATEGORIAS = {
     'LEISURE': 'Lazer',
     'LATE PAYMENT AND OVERDRAFT COSTS': 'Juros e Multas',
     'TAX ON FINANCIAL OPERATIONS': 'Impostos (IOF/Taxas)',
+    
     'COMPRAS': 'Compras',
     'SUPERMERCADO': 'Supermercado',
     'TRANSPORTE': 'Transporte',
     'INTERNET': 'Internet',
+
     'FOOD_AND_DRINK': 'Alimentação',
     'FOOD AND DRINK': 'Alimentação',
     'RESTAURANT': 'Restaurante',
@@ -309,17 +364,23 @@ TRADUCAO_CATEGORIAS = {
 def traduzir_categoria(cat_raw):
     if cat_raw is None:
         return 'Outros'
+    
     if isinstance(cat_raw, dict):
         cat_raw = cat_raw.get('description', cat_raw.get('name', 'UNCATEGORIZED'))
+        
     cat_str = str(cat_raw).upper().strip()
+    
     if cat_str in TRADUCAO_CATEGORIAS:
         return TRADUCAO_CATEGORIAS[cat_str]
+        
     cat_str_under = cat_str.replace(' - ', '_').replace('-', '_').replace(' ', '_')
     if cat_str_under in TRADUCAO_CATEGORIAS:
         return TRADUCAO_CATEGORIAS[cat_str_under]
+        
     cat_str_espaco = cat_str.replace('_', ' ')
     if cat_str_espaco in TRADUCAO_CATEGORIAS:
         return TRADUCAO_CATEGORIAS[cat_str_espaco]
+        
     return cat_str_espaco.title() if cat_str else 'Outros'
 
 def gerar_excel(df, total_in, total_out, saldo, total_cartao):
@@ -515,8 +576,8 @@ if not st.session_state['logado']:
     col1, col2, col3 = st.columns([1, 1.5, 1])
     with col2:
         st.markdown("<div style='height: 60px;'></div>", unsafe_allow_html=True)
-        st.markdown("<h2 style='text-align: center; color: #38bdf8; font-weight: 700;'>🤖 AUXILIADOR FINANCEIRO PARA A IANDRA</h2>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #94a3b8; font-size: 1.1rem;'>Gestão financeira inteligente, simplificada e elegante.</p>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; color: #ffffff; font-weight: 700;'>🤖 AUXILIADOR FINANCEIRO PARA A IANDRA</h2>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: #838a9b; font-size: 1.1rem;'>Gestão financeira inteligente, simplificada e elegante.</p>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         with st.form("login_form"):
             email = st.text_input("E-mail")
@@ -539,7 +600,7 @@ if not st.session_state['logado']:
 # ==========================================
 else:
     with st.sidebar:
-        st.markdown(f"### Olá, <span style='color: #38bdf8;'>{st.session_state['usuario_nome']}</span> 👋", unsafe_allow_html=True)
+        st.markdown(f"### Olá, <span style='color: #6347f2;'>{st.session_state['usuario_nome']}</span> 👋", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         
         if st.button("🔄 Forçar Atualização de Dados"):
@@ -839,7 +900,8 @@ connect.init();
 
                         st.markdown("<br>", unsafe_allow_html=True)
 
-                        grafico_cores = ['#0ea5e9', '#8b5cf6', '#10b981', '#f59e0b', '#f43f5e', '#64748b', '#ec4899', '#14b8a6', '#f97316', '#a78bfa']
+                        # Cores adaptadas ao novo visual Fintech Nova Days
+                        grafico_cores = ['#6347f2', '#00cec9', '#fd79a8', '#0984e3', '#00b894', '#d63031', '#fdcb6e', '#e17055', '#b2bec3']
 
                         col_g1, col_g2 = st.columns(2)
 
@@ -860,7 +922,7 @@ connect.init();
                                 fig_p.update_layout(
                                     margin=dict(t=10, b=10, l=10, r=10),
                                     showlegend=True,
-                                    legend=dict(font=dict(color='#94a3b8'), bgcolor='rgba(0,0,0,0)'),
+                                    legend=dict(font=dict(color='#838a9b'), bgcolor='rgba(0,0,0,0)'),
                                     paper_bgcolor='rgba(0,0,0,0)',
                                     plot_bgcolor='rgba(0,0,0,0)',
                                     font=dict(color='#e2e8f0')
@@ -882,7 +944,7 @@ connect.init();
                             fig_l = px.area(
                                 df_day_grp, x='date', y='saldo_acumulado',
                                 line_shape='spline',
-                                color_discrete_sequence=['#0ea5e9'],
+                                color_discrete_sequence=['#6347f2'],
                                 labels={'saldo_acumulado': 'Saldo Acumulado', 'date': 'Data'}
                             )
                             fig_l.update_layout(
@@ -890,8 +952,8 @@ connect.init();
                                 xaxis_title=None, yaxis_title="R$",
                                 paper_bgcolor='rgba(0,0,0,0)',
                                 plot_bgcolor='rgba(0,0,0,0)',
-                                font=dict(color='#e2e8f0'),
-                                yaxis=dict(gridcolor='#334155', tickprefix='R$ ')
+                                font=dict(color='#838a9b'),
+                                yaxis=dict(gridcolor='#232733', tickprefix='R$ ')
                             )
                             fig_l.update_xaxes(showgrid=False)
                             st.plotly_chart(fig_l, use_container_width=True)
@@ -903,16 +965,16 @@ connect.init();
                         fig_bar = px.bar(
                             df_mensal_grp, x='mes', y='valor_abs', color='tipo',
                             barmode='group',
-                            color_discrete_map={'Entrada': '#10b981', 'Saída': '#f43f5e'},
+                            color_discrete_map={'Entrada': '#00b894', 'Saída': '#d63031'},
                             labels={'valor_abs': 'Valor (R$)', 'mes': 'Mês', 'tipo': 'Tipo'}
                         )
                         fig_bar.update_layout(
                             margin=dict(t=10, b=10, l=10, r=10),
                             paper_bgcolor='rgba(0,0,0,0)',
                             plot_bgcolor='rgba(0,0,0,0)',
-                            font=dict(color='#e2e8f0'),
-                            legend=dict(font=dict(color='#94a3b8'), bgcolor='rgba(0,0,0,0)'),
-                            yaxis=dict(gridcolor='#334155', tickprefix='R$ '),
+                            font=dict(color='#838a9b'),
+                            legend=dict(font=dict(color='#838a9b'), bgcolor='rgba(0,0,0,0)'),
+                            yaxis=dict(gridcolor='#232733', tickprefix='R$ '),
                             xaxis=dict(showgrid=False)
                         )
                         st.plotly_chart(fig_bar, use_container_width=True)
