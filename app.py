@@ -201,40 +201,95 @@ def buscar_dados_reais(item_id):
     except Exception as e:
         return "ERRO_DADOS", []
 
+# Mapeamento completo de categorias da Pluggy para Português
 TRADUCAO_CATEGORIAS = {
+    # Alimentação
     'FOOD_AND_DRINK': 'Alimentação',
+    'FOOD AND DRINK': 'Alimentação',
+    'RESTAURANT': 'Restaurante',
     'GROCERIES': 'Supermercado',
-    'SHOPPING': 'Compras',
-    'INCOME': 'Renda',
-    'TRANSFER': 'Transferência',
-    'PAYMENT': 'Pagamento',
-    'HEALTHCARE': 'Saúde',
-    'TRANSPORTATION': 'Transporte',
-    'ENTERTAINMENT': 'Lazer',
+    'COFFEE': 'Cafeteria',
+    
+    # Casa e Contas
+    'HOME': 'Casa',
+    'RENT': 'Aluguel',
+    'MORTGAGE': 'Hipoteca',
     'UTILITIES': 'Contas de Casa',
+    'ELECTRICITY': 'Energia Elétrica',
+    'WATER': 'Água',
+    'INTERNET': 'Internet/Telefone',
+    
+    # Transporte
+    'TRANSPORTATION': 'Transporte',
+    'GAS_STATION': 'Posto de Combustível',
+    'GAS': 'Combustível',
+    'PARKING': 'Estacionamento',
+    'PUBLIC_TRANSIT': 'Transporte Público',
+    
+    # Saúde e Cuidados
+    'HEALTHCARE': 'Saúde',
+    'PHARMACY': 'Farmácia',
+    'DOCTOR': 'Médico/Clínica',
     'PERSONAL_CARE': 'Cuidados Pessoais',
+    'GYM': 'Academia',
+    
+    # Lazer e Compras
+    'ENTERTAINMENT': 'Lazer e Entretenimento',
+    'SUBSCRIPTIONS': 'Assinaturas (Netflix, Spotify etc)',
+    'SHOPPING': 'Compras',
+    'CLOTHING': 'Roupas',
+    'ELECTRONICS': 'Eletrônicos',
+    
+    # Educação e Viagens
     'EDUCATION': 'Educação',
     'TRAVEL': 'Viagem',
+    
+    # Financeiro
+    'INCOME': 'Renda',
+    'SALARY': 'Salário',
+    'TRANSFER': 'Transferência',
+    'INTERNAL_TRANSFER': 'Transferência Interna',
+    'PAYMENT': 'Pagamento',
+    'CREDIT_CARD_PAYMENT': 'Pagamento de Fatura',
     'INVESTMENT': 'Investimento',
     'BANK_FEES': 'Tarifas Bancárias',
     'CREDIT_CARD': 'Cartão de Crédito',
     'LOAN': 'Empréstimo',
     'INSURANCE': 'Seguro',
-    'HOME': 'Casa',
+    'TAXES': 'Impostos',
+    'DEPOSIT': 'Depósito',
+    
+    # Outros
     'UNCATEGORIZED': 'Outros',
-    'FOOD AND DRINK': 'Alimentação',
-    'PERSONAL CARE': 'Cuidados Pessoais',
-    'BANK FEES': 'Tarifas Bancárias',
-    'CREDIT CARD': 'Cartão de Crédito',
+    'OTHER': 'Outros'
 }
 
 def traduzir_categoria(cat_raw):
+    """Extrai e traduz categoria independente do formato retornado pela Pluggy."""
     if cat_raw is None:
         return 'Outros'
+    
+    # Se vier como dicionário (a Pluggy às vezes retorna a categoria dentro de um objeto)
     if isinstance(cat_raw, dict):
         cat_raw = cat_raw.get('description', cat_raw.get('name', 'UNCATEGORIZED'))
+        
+    # Pega a string, remove espaços nas pontas e joga para maiúsculo
     cat_str = str(cat_raw).upper().strip()
-    return TRADUCAO_CATEGORIAS.get(cat_str, cat_str.replace('_', ' ').title() if cat_str else 'Outros')
+    
+    # Limpa possíveis formatações esquisitas que a API mande (troca ponto e hífen por underline)
+    cat_str_limpa = cat_str.replace('.', '_').replace('-', '_')
+    cat_str_espaco = cat_str.replace('_', ' ')
+    
+    # Tenta achar a tradução. Se mesmo assim for uma categoria nova que não está no dicionário,
+    # ele retorna o nome original de forma mais legível (ex: "Pets" ao invés de "PETS").
+    if cat_str_limpa in TRADUCAO_CATEGORIAS:
+        return TRADUCAO_CATEGORIAS[cat_str_limpa]
+    elif cat_str_espaco in TRADUCAO_CATEGORIAS:
+        return TRADUCAO_CATEGORIAS[cat_str_espaco]
+    elif cat_str in TRADUCAO_CATEGORIAS:
+        return TRADUCAO_CATEGORIAS[cat_str]
+    else:
+        return cat_str_espaco.title() if cat_str else 'Outros'
 
 def gerar_excel(df, total_in, total_out, saldo, total_cartao):
     output = io.BytesIO()
