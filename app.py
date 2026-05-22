@@ -19,27 +19,70 @@ st.markdown("""
     #MainMenu {visibility: hidden;}
     header {visibility: hidden;}
     footer {visibility: hidden;}
+    
     [data-testid="stForm"], [data-testid="stMetricContainer"] {
         background-color: #1e293b !important; border: 1px solid #334155 !important;
         border-radius: 16px !important; padding: 20px !important; box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important;
     }
     [data-testid="stMetricValue"] { color: #e2e8f0 !important; }
+    
+    /* Botões Padrões */
     div.stButton > button:first-child {
-        background-color: #0284c7 !important; color: #ffffff !important; border-radius: 20px !important;
+        background-color: #0284c7 !important; color: #ffffff !important; border-radius: 10px !important;
         padding: 0.5rem 2rem !important; font-weight: 500 !important; border: 1px solid #0369a1 !important;
         transition: all 0.3s ease; width: 100%;
     }
     div.stButton > button:first-child:hover { background-color: #0369a1 !important; border-color: #0ea5e9 !important; }
+    
     .connect-btn button { background: linear-gradient(135deg, #0284c7 0%, #0d9488 100%) !important; border: none !important; height: 3.5rem !important; font-size: 1.1rem !important; }
-    div[role="radiogroup"] { gap: 12px; }
+    
+    /* ==================================================
+       NOVO VISUAL: Botões de navegação lateral (st.radio) 
+       ================================================== */
+    div[role="radiogroup"] { gap: 8px; }
     div[role="radiogroup"] > label {
-        background-color: #0f172a !important; border-radius: 25px !important; padding: 12px 20px !important;
-        border: 1px solid #334155 !important; cursor: pointer; transition: all 0.3s ease;
+        background-color: transparent !important; 
+        border-radius: 8px !important; 
+        padding: 10px 15px !important;
+        border: none !important; 
+        border-left: 3px solid transparent !important; /* Borda invisível por padrão */
+        cursor: pointer; 
+        transition: all 0.2s ease;
     }
-    div[role="radiogroup"] > label:hover { border-color: #0ea5e9 !important; background-color: #162032 !important; }
-    div[role="radiogroup"] > label[data-checked="true"] { background-color: #0ea5e9 !important; border-color: #0ea5e9 !important; }
+    div[role="radiogroup"] > label:hover { 
+        background-color: rgba(255, 255, 255, 0.05) !important; /* Leve brilho ao passar o mouse */
+    }
+    /* Estilo do item selecionado */
+    div[role="radiogroup"] > label[data-checked="true"] { 
+        background-color: rgba(14, 165, 233, 0.1) !important; /* Fundo azul bem clarinho/transparente */
+        border-left: 3px solid #0ea5e9 !important; /* Linha azul na esquerda */
+    }
+    div[role="radiogroup"] > label[data-checked="true"] p {
+        color: #38bdf8 !important; /* Texto azul claro quando selecionado */
+        font-weight: 600 !important;
+    }
+
+    /* ==================================================
+       NOVO VISUAL: Caixas de Opções, Datas e Inputs 
+       ================================================== */
     .stTextInput input, .stDateInput input, [data-baseweb="select"] > div {
-        background-color: #0f172a !important; color: #e2e8f0 !important; border: 1px solid #334155 !important; border-radius: 10px !important;
+        background-color: #1e293b !important; 
+        color: #e2e8f0 !important; 
+        border: 1px solid #475569 !important; 
+        border-radius: 8px !important;
+        transition: all 0.3s ease;
+    }
+    /* Efeito de Foco (quando clica na caixa) */
+    .stTextInput input:focus, .stDateInput input:focus, [data-baseweb="select"] > div:focus-within {
+        border-color: #0ea5e9 !important;
+        box-shadow: 0 0 0 1px #0ea5e9 !important;
+    }
+    /* Estilo das "Tags" selecionadas no Multiselect de categorias */
+    span[data-baseweb="tag"] {
+        background-color: #0284c7 !important;
+        color: white !important;
+        border-radius: 6px !important;
+        border: none !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -214,12 +257,10 @@ TRADUCAO_CATEGORIAS = {
     'LEISURE': 'Lazer',
     'LATE PAYMENT AND OVERDRAFT COSTS': 'Juros e Multas',
     'TAX ON FINANCIAL OPERATIONS': 'Impostos (IOF/Taxas)',
-    
     'COMPRAS': 'Compras',
     'SUPERMERCADO': 'Supermercado',
     'TRANSPORTE': 'Transporte',
     'INTERNET': 'Internet',
-
     'FOOD_AND_DRINK': 'Alimentação',
     'FOOD AND DRINK': 'Alimentação',
     'RESTAURANT': 'Restaurante',
@@ -268,23 +309,17 @@ TRADUCAO_CATEGORIAS = {
 def traduzir_categoria(cat_raw):
     if cat_raw is None:
         return 'Outros'
-    
     if isinstance(cat_raw, dict):
         cat_raw = cat_raw.get('description', cat_raw.get('name', 'UNCATEGORIZED'))
-        
     cat_str = str(cat_raw).upper().strip()
-    
     if cat_str in TRADUCAO_CATEGORIAS:
         return TRADUCAO_CATEGORIAS[cat_str]
-        
     cat_str_under = cat_str.replace(' - ', '_').replace('-', '_').replace(' ', '_')
     if cat_str_under in TRADUCAO_CATEGORIAS:
         return TRADUCAO_CATEGORIAS[cat_str_under]
-        
     cat_str_espaco = cat_str.replace('_', ' ')
     if cat_str_espaco in TRADUCAO_CATEGORIAS:
         return TRADUCAO_CATEGORIAS[cat_str_espaco]
-        
     return cat_str_espaco.title() if cat_str else 'Outros'
 
 def gerar_excel(df, total_in, total_out, saldo, total_cartao):
@@ -506,6 +541,13 @@ else:
     with st.sidebar:
         st.markdown(f"### Olá, <span style='color: #38bdf8;'>{st.session_state['usuario_nome']}</span> 👋", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
+        
+        if st.button("🔄 Forçar Atualização de Dados"):
+            st.cache_data.clear()
+            st.rerun()
+            
+        st.markdown("<br>", unsafe_allow_html=True)
+        
         menu = st.radio(
             "Navegação",
             ["📊 Dashboard", "🔗 Gerir Bancos", "⚙️ Admin"] if st.session_state['is_admin']
@@ -682,53 +724,42 @@ connect.init();
                 if not trans:
                     st.info("Nenhuma transação encontrada para este período.")
                 else:
-                    # --- CAÇADA AGRESSIVA AOS NOMES (PIX E TRANSFERÊNCIAS) ---
                     for t in trans:
                         desc_original = str(t.get('description', '')).strip()
                         nome_extra = ""
                         amount = float(t.get('amount', 0)) if t.get('amount') is not None else 0
                         
-                        # 1. Tenta pegar do Merchant
                         if isinstance(t.get('merchant'), dict):
                             nome_extra = t['merchant'].get('name', '') or t['merchant'].get('businessName', '')
                             
-                        # 2. Tenta pegar do PaymentData (padrão Pluggy)
                         if not nome_extra and isinstance(t.get('paymentData'), dict):
                             pdata = t['paymentData']
-                            if amount < 0: # Saída
+                            if amount < 0: 
                                 nome_extra = pdata.get('receiverName', '')
                                 if not nome_extra and isinstance(pdata.get('payee'), dict):
                                     nome_extra = pdata['payee'].get('name', '')
                                 if not nome_extra and isinstance(pdata.get('receiver'), dict):
                                     nome_extra = pdata['receiver'].get('name', '')
-                            else: # Entrada
+                            else: 
                                 nome_extra = pdata.get('payerName', '')
                                 if not nome_extra and isinstance(pdata.get('payer'), dict):
                                     nome_extra = pdata['payer'].get('name', '')
                                     
-                        # 3. CARTADA FINAL: descriptionRaw (texto cru do extrato do banco sem filtro)
                         if not nome_extra and t.get('descriptionRaw'):
                             raw = str(t['descriptionRaw']).strip()
-                            
-                            # Se o raw for diferente da descrição, ele esconde algo
                             if raw.upper() != desc_original.upper():
-                                # Tira a palavra "Pagamento de pix" se ela existir no raw pra sobrar só o nome
                                 if desc_original.upper() in raw.upper():
-                                    # Substitui e limpa espaços e tracinhos extras
                                     nome_extra = raw.upper().replace(desc_original.upper(), '').strip(' -/*\\:')
                                 else:
                                     nome_extra = raw
 
-                        # Formata e junta
                         if nome_extra:
                             nome_extra = str(nome_extra).title()
-                            # Se o nome puxado ficar bizarramente grande, a gente corta
                             if len(nome_extra) > 40:
                                 nome_extra = nome_extra[:40] + "..."
                             t['descricao_completa'] = f"{desc_original} ({nome_extra})"
                         else:
                             t['descricao_completa'] = desc_original
-                    # -------------------------------------------------------------
 
                     df = pd.DataFrame(trans)
 
@@ -782,7 +813,6 @@ connect.init();
                     if df_f.empty:
                         st.warning("Nenhuma transação encontrada com os filtros selecionados.")
                     else:
-                        # --- MÉTRICAS ---
                         entradas = df_f[df_f['tipo'] == 'Entrada']['valor_abs'].sum()
                         saidas = df_f[df_f['tipo'] == 'Saída']['valor_abs'].sum()
                         
@@ -894,7 +924,6 @@ connect.init();
                         df_extrato = df_extrato.sort_values('date', ascending=False)
                         df_extrato.columns = ['Data', 'Descrição', 'Valor (R$)', 'Tipo', 'Categoria']
                         df_extrato['Valor (R$)'] = df_extrato['Valor (R$)'].round(2)
-                        
                         df_extrato['Data'] = df_extrato['Data'].dt.strftime('%d/%m/%Y')
 
                         st.dataframe(df_extrato, use_container_width=True, hide_index=True)
@@ -903,3 +932,20 @@ connect.init();
                         df_export = df_extrato.copy()
                         c_ex1.download_button("📊 Baixar Excel", gerar_excel(df_export, entradas, saidas, saldo, total_cartao), "extrato.xlsx")
                         c_ex2.download_button("📄 Baixar PDF", gerar_pdf(df_export, entradas, saidas, saldo, total_cartao), "relatorio.pdf")
+
+                        # --- MODO DESENVOLVEDOR (VER DADOS PUROS) ---
+                        st.markdown("---")
+                        with st.expander("🛠️ Modo Desenvolvedor: Inspecionar Dados do Banco"):
+                            st.info("Veja abaixo exatamente como o banco está enviando os dados de PIX para o sistema. Se o nome da pessoa/empresa não estiver escrito em nenhum lugar dentro das chaves `{ }` abaixo, significa que o banco ocultou essa informação de propósito na integração.")
+                            
+                            pix_brutos = []
+                            for t in trans:
+                                desc = str(t.get('description', '')).lower()
+                                raw_desc = str(t.get('descriptionRaw', '')).lower()
+                                if 'pix' in desc or 'pix' in raw_desc:
+                                    pix_brutos.append(t)
+                                    
+                            if pix_brutos:
+                                st.json(pix_brutos[:5]) 
+                            else:
+                                st.warning("Nenhuma transação com a palavra PIX encontrada nos dados puros.")
