@@ -201,50 +201,57 @@ def buscar_dados_reais(item_id):
     except Exception as e:
         return "ERRO_DADOS", []
 
-# Mapeamento completo de categorias da Pluggy para Português
+# Mapeamento completo de categorias 
 TRADUCAO_CATEGORIAS = {
-    # Alimentação
+    # --- Adições específicas com base na sua imagem ---
+    'TRANSFER - PIX': 'Transferência PIX',
+    'TRANSFERS': 'Transferências',
+    'DIGITAL SERVICES': 'Serviços Digitais',
+    'FOOD DELIVERY': 'Delivery de Comida',
+    'BOOKSTORE': 'Livraria',
+    'ONLINE SHOPPING': 'Compras Online',
+    'TELECOMMUNICATIONS': 'Telecomunicações',
+    'EATING OUT': 'Restaurantes',
+    'GAS STATIONS': 'Posto de Combustível',
+    'LEISURE': 'Lazer',
+    'LATE PAYMENT AND OVERDRAFT COSTS': 'Juros e Multas',
+    'TAX ON FINANCIAL OPERATIONS': 'Impostos (IOF/Taxas)',
+    
+    # --- Categorias que já estavam em português na imagem ---
+    'COMPRAS': 'Compras',
+    'SUPERMERCADO': 'Supermercado',
+    'TRANSPORTE': 'Transporte',
+    'INTERNET': 'Internet',
+
+    # --- Traduções genéricas para garantir cobertura extra ---
     'FOOD_AND_DRINK': 'Alimentação',
     'FOOD AND DRINK': 'Alimentação',
     'RESTAURANT': 'Restaurante',
     'GROCERIES': 'Supermercado',
     'COFFEE': 'Cafeteria',
-    
-    # Casa e Contas
     'HOME': 'Casa',
     'RENT': 'Aluguel',
     'MORTGAGE': 'Hipoteca',
     'UTILITIES': 'Contas de Casa',
     'ELECTRICITY': 'Energia Elétrica',
     'WATER': 'Água',
-    'INTERNET': 'Internet/Telefone',
-    
-    # Transporte
     'TRANSPORTATION': 'Transporte',
     'GAS_STATION': 'Posto de Combustível',
     'GAS': 'Combustível',
     'PARKING': 'Estacionamento',
     'PUBLIC_TRANSIT': 'Transporte Público',
-    
-    # Saúde e Cuidados
     'HEALTHCARE': 'Saúde',
     'PHARMACY': 'Farmácia',
     'DOCTOR': 'Médico/Clínica',
     'PERSONAL_CARE': 'Cuidados Pessoais',
     'GYM': 'Academia',
-    
-    # Lazer e Compras
     'ENTERTAINMENT': 'Lazer e Entretenimento',
-    'SUBSCRIPTIONS': 'Assinaturas (Netflix, Spotify etc)',
+    'SUBSCRIPTIONS': 'Assinaturas',
     'SHOPPING': 'Compras',
     'CLOTHING': 'Roupas',
     'ELECTRONICS': 'Eletrônicos',
-    
-    # Educação e Viagens
     'EDUCATION': 'Educação',
     'TRAVEL': 'Viagem',
-    
-    # Financeiro
     'INCOME': 'Renda',
     'SALARY': 'Salário',
     'TRANSFER': 'Transferência',
@@ -258,8 +265,6 @@ TRADUCAO_CATEGORIAS = {
     'INSURANCE': 'Seguro',
     'TAXES': 'Impostos',
     'DEPOSIT': 'Depósito',
-    
-    # Outros
     'UNCATEGORIZED': 'Outros',
     'OTHER': 'Outros'
 }
@@ -269,27 +274,29 @@ def traduzir_categoria(cat_raw):
     if cat_raw is None:
         return 'Outros'
     
-    # Se vier como dicionário (a Pluggy às vezes retorna a categoria dentro de um objeto)
+    # Extrai o nome se vier como dicionário
     if isinstance(cat_raw, dict):
         cat_raw = cat_raw.get('description', cat_raw.get('name', 'UNCATEGORIZED'))
         
-    # Pega a string, remove espaços nas pontas e joga para maiúsculo
+    # Joga para maiúsculo e remove espaços nas pontas
     cat_str = str(cat_raw).upper().strip()
     
-    # Limpa possíveis formatações esquisitas que a API mande (troca ponto e hífen por underline)
-    cat_str_limpa = cat_str.replace('.', '_').replace('-', '_')
-    cat_str_espaco = cat_str.replace('_', ' ')
-    
-    # Tenta achar a tradução. Se mesmo assim for uma categoria nova que não está no dicionário,
-    # ele retorna o nome original de forma mais legível (ex: "Pets" ao invés de "PETS").
-    if cat_str_limpa in TRADUCAO_CATEGORIAS:
-        return TRADUCAO_CATEGORIAS[cat_str_limpa]
-    elif cat_str_espaco in TRADUCAO_CATEGORIAS:
-        return TRADUCAO_CATEGORIAS[cat_str_espaco]
-    elif cat_str in TRADUCAO_CATEGORIAS:
+    # 1. Tenta a correspondência exata primeiro (ex: "TRANSFER - PIX")
+    if cat_str in TRADUCAO_CATEGORIAS:
         return TRADUCAO_CATEGORIAS[cat_str]
-    else:
-        return cat_str_espaco.title() if cat_str else 'Outros'
+        
+    # 2. Tenta substituir hifens e espaços por underscores
+    cat_str_under = cat_str.replace(' - ', '_').replace('-', '_').replace(' ', '_')
+    if cat_str_under in TRADUCAO_CATEGORIAS:
+        return TRADUCAO_CATEGORIAS[cat_str_under]
+        
+    # 3. Tenta remover os underscores para espaços (caso a API mande com _)
+    cat_str_espaco = cat_str.replace('_', ' ')
+    if cat_str_espaco in TRADUCAO_CATEGORIAS:
+        return TRADUCAO_CATEGORIAS[cat_str_espaco]
+        
+    # Se falhar todas, retorna o nome mais amigável, apenas capitalizado
+    return cat_str_espaco.title() if cat_str else 'Outros'
 
 def gerar_excel(df, total_in, total_out, saldo, total_cartao):
     output = io.BytesIO()
