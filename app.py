@@ -47,11 +47,34 @@ html, body {
 
 /* OCULTA O BOTAO DE RECOLHER A BARRA LATERAL (DEIXA ELA FIXA) E REMOVE O TEXTO BUGADO */
 [data-testid="collapsedControl"],
+[data-testid="stSidebarCollapseButton"],
 .st-emotion-cache-1vt4ygl,
 .st-emotion-cache-6qob1r,
-[kind="header"] {
+[kind="header"],
+button[title="Collapse sidebar"],
+button[title="Expand sidebar"],
+.st-emotion-cache-90s44j,
+.st-emotion-cache-18ni7ap {
     display: none !important;
     visibility: hidden !important;
+}
+
+/* ESCONDE O TOOLBAR/MENU DO STREAMLIT NO CANTO INFERIOR (BOTÃO QUE APARECE NA PRINT) */
+[data-testid="stStatusWidget"],
+footer + div,
+div[data-testid="stStatusWidget"] {
+    display: none !important;
+}
+
+/* GARANTE QUE A SIDEBAR NÃO POSSA SER RECOLHIDA E FIQUE FIXA */
+[data-testid="stSidebar"] {
+    min-width: 200px !important;
+    max-width: 200px !important;
+    transform: none !important;
+    transition: none !important;
+}
+[data-testid="stSidebar"][aria-expanded="false"] {
+    margin-left: 0px !important;
 }
 
 /* REMOVE DEFINITIVAMENTE O TEXTO BUGADO DO STREAMLIT */
@@ -63,7 +86,7 @@ header, [data-testid="stHeader"] {
     pointer-events: none !important;
     height: 0px !important;
 }
-header * {
+header *, [data-testid="stHeader"] * {
     display: none !important;
 }
 
@@ -180,35 +203,32 @@ div[role="radiogroup"] > label p {
 }
 
 /* ── BUTTONS ── */
-.stButton > button {
-    background: linear-gradient(135deg, #1c2333 0%, #161b27 100%) !important;
+.stButton > button, div[data-testid="stFormSubmitButton"] > button {
+    background: #1c2333 !important; /* Fundo sólido escuro */
     color: var(--t1) !important;
-    border: 1px solid var(--border) !important;
+    border: none !important; /* Remove o outline/borda transparente */
     border-radius: 8px !important;
-    padding: 0.5rem 0.9rem !important;
+    padding: 0.6rem 1rem !important;
     font-weight: 600 !important;
-    font-size: 0.8rem !important;
-    letter-spacing: 0.2px;
-    transition: all 0.2s;
+    font-size: 0.85rem !important;
+    transition: all 0.2s ease-in-out;
     width: 100%;
     font-family: 'Inter', sans-serif !important;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.4) !important;
 }
-.stButton > button:hover {
-    background: var(--blue) !important;
-    color: #fff !important;
-    border-color: var(--blue) !important;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 12px rgba(59,139,235,0.2) !important;
+.stButton > button:hover, div[data-testid="stFormSubmitButton"] > button:hover {
+    background: #252e44 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.5) !important;
 }
-.stButton > button[kind="primary"] {
+.stButton > button[kind="primary"], div[data-testid="stFormSubmitButton"] > button[kind="primary"] {
     background: linear-gradient(135deg, #3b8beb, #00d4e8) !important;
-    color: #fff !important; font-weight: 700 !important;
-    border: none !important;
+    color: #fff !important;
+    font-weight: 700 !important;
+    box-shadow: 0 4px 15px rgba(0,212,232,0.3) !important;
 }
 .stButton > button[kind="primary"]:hover {
-    box-shadow: 0 0 20px rgba(0,212,232,0.4) !important;
-    transform: translateY(-1px);
+    box-shadow: 0 8px 25px rgba(0,212,232,0.5) !important;
 }
 
 /* danger button */
@@ -351,22 +371,20 @@ p, span, div { font-family: 'Inter', sans-serif !important; }
 
 /* ── DOWNLOAD BUTTON ── */
 .stDownloadButton > button {
-    background: linear-gradient(135deg, #1c2333 0%, #161b27 100%) !important;
+    background: #1c2333 !important;
     color: var(--t1) !important;
-    border: 1px solid var(--border) !important;
+    border: none !important;
     border-radius: 8px !important;
     font-weight: 600 !important;
     font-family: 'Inter', sans-serif !important;
     width: 100%;
     transition: all 0.2s;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.4) !important;
 }
 .stDownloadButton > button:hover {
-    background: var(--blue) !important;
-    color: #fff !important;
-    border-color: var(--blue) !important;
-    transform: translateY(-1px);
-    box-shadow: 0 6px 12px rgba(59,139,235,0.2) !important;
+    background: #252e44 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.5) !important;
 }
 
 /* ── RADIO (filters) ── */
