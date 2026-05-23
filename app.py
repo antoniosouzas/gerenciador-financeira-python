@@ -173,39 +173,45 @@ footer { visibility: hidden !important; }
 
 /* ── NAV RADIO = sidebar nav ── */
 div[role="radiogroup"] {
-    gap: 4px !important;
+    gap: 8px !important;
     display: flex !important;
     flex-direction: column !important;
-    padding: 8px 12px;
+    padding: 12px !important;
 }
 div[role="radiogroup"] > label {
-    background: transparent !important;
-    border-radius: 8px !important;
-    padding: 10px 14px !important;
-    border: none !important;
-    transition: all 0.2s;
+    background: #151515 !important;
+    border-radius: 12px !important;
+    padding: 12px 16px !important;
+    border: 1px solid rgba(255,255,255,0.03) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     margin: 0 !important;
     cursor: pointer;
     width: 100% !important;
+    display: block !important;
+}
+/* Ocultar rádio nativo totalmente */
+div[role="radiogroup"] [data-testid="stWidgetSelectionResult"],
+div[role="radiogroup"] input[type="radio"] {
+    display: none !important;
 }
 div[role="radiogroup"] > label:hover {
-    background: rgba(255,255,255,0.05) !important;
+    background: #252525 !important;
+    border-color: rgba(255,255,255,0.1) !important;
 }
 div[role="radiogroup"] > label[data-checked="true"] {
-    background: rgba(255,255,255,0.1) !important;
+    background: #252525 !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 4px 12px rgba(0, 255, 148, 0.05) !important;
 }
 div[role="radiogroup"] > label[data-checked="true"] p {
     color: var(--accent) !important;
     font-weight: 700 !important;
 }
 div[role="radiogroup"] > label p {
-    color: var(--t2);
-    font-size: 0.85rem !important;
+    color: #888;
+    font-size: 0.9rem !important;
     margin: 0 !important;
-}
-/* Esconder o círculo do radio */
-div[role="radiogroup"] [data-testid="stWidgetSelectionResult"] {
-    display: none !important;
+    transition: color 0.3s;
 }
 
 /* ── HORIZONTAL RADIO (Filtros de Tempo) ── */
@@ -719,8 +725,8 @@ def gerar_excel(df, total_in, total_out, saldo, total_cartao):
 def gerar_pdf(df, total_in, total_out, saldo, total_cartao):
     pdf = FPDF(orientation='L',unit='mm',format='A4'); pdf.set_auto_page_break(auto=True,margin=12); pdf.add_page()
     largura_pagina = 277
-    data_fim = df['Data'].iloc[0][:10] if not df.empty else 'N/A'
-    data_inicio = df['Data'].iloc[-1][:10] if not df.empty else 'N/A'
+    data_fim = df['Data'].iloc[0].strftime('%Y-%m-%d') if not df.empty else 'N/A'
+    data_inicio = df['Data'].iloc[-1].strftime('%Y-%m-%d') if not df.empty else 'N/A'
     pdf.set_fill_color(2,136,209); pdf.set_text_color(255,255,255); pdf.set_font("helvetica",'B',16)
     pdf.cell(largura_pagina,12,"GFI Financeiro - Relatorio Financeiro",ln=False,align='C',fill=True); pdf.ln(12)
     pdf.set_font("helvetica",'',9); pdf.set_text_color(100,116,139)
@@ -825,7 +831,7 @@ else:
         """, unsafe_allow_html=True)
 
         # ── NAV ──
-        st.markdown('<div class="gfi-section-lbl" style="margin-bottom: 8px;">Main Menu</div>', unsafe_allow_html=True)
+        st.markdown('<div class="gfi-section-lbl" style="margin-bottom: 8px;">MENU PRINCIPAL</div>', unsafe_allow_html=True)
 
         # Mapeamento do menu conforme pedido
         nav_options = [
@@ -1104,27 +1110,38 @@ connect.init();
             # Seletor de Tempo (Time Selector) estilo Trading
             st.markdown("""
             <style>
-            div[data-testid="stHorizontalBlock"] button {
-                background: #1E1E1E !important;
-                border: 1px solid rgba(255,255,255,0.1) !important;
-                color: #888 !important;
-                border-radius: 8px !important;
-                font-weight: 600 !important;
-                transition: 0.3s !important;
+            /* Ocultar rádio nativo totalmente */
+            div[data-testid="stHorizontalBlock"] div[role="radiogroup"] label {
+                padding: 0 !important;
+                background: transparent !important;
             }
-            div[data-testid="stHorizontalBlock"] button:hover {
+            div[data-testid="stHorizontalBlock"] div[role="radiogroup"] label div[data-testid="stWidgetSelectionResult"] {
+                display: none !important;
+            }
+            div[data-testid="stHorizontalBlock"] div[role="radiogroup"] label p {
+                background: #1E1E1E;
+                border: 1px solid rgba(255,255,255,0.1);
+                color: #888;
+                border-radius: 8px;
+                padding: 6px 14px;
+                font-weight: 600;
+                transition: 0.3s;
+                text-align: center;
+                width: 100%;
+            }
+            div[data-testid="stHorizontalBlock"] div[role="radiogroup"] label[data-checked="true"] p {
+                background: var(--accent) !important;
+                color: #000 !important;
                 border-color: var(--accent) !important;
-                color: var(--accent) !important;
+            }
+            div[data-testid="stHorizontalBlock"] div[role="radiogroup"] label:hover p {
+                border-color: var(--accent);
+                color: var(--accent);
             }
             </style>
             """, unsafe_allow_html=True)
 
-            ts_cols = st.columns([1,1,1,1,1,5])
-            if ts_cols[0].button("1H", use_container_width=True): pass
-            if ts_cols[1].button("1D", use_container_width=True): pass
-            if ts_cols[2].button("1W", use_container_width=True): pass
-            if ts_cols[3].button("1M", use_container_width=True): pass
-            if ts_cols[4].button("1Y", use_container_width=True): pass
+            periodo = st.radio("Periodo", ["1H", "1D", "1W", "1M", "1Y"], index=3, horizontal=True, label_visibility="collapsed")
 
             with st.spinner("Sincronizando dados..."):
                 resultado = buscar_dados_reais(bancos_dict[sel_banco])
@@ -1160,17 +1177,21 @@ connect.init();
                     df['valor_abs'] = df['amount'].abs()
                     df['categoria'] = df.get('category','Outros').apply(traduzir_categoria) if 'category' in df.columns else 'Outros'
 
-                    # FILTROS SIDEBAR (Escondidos mas funcionais)
-                    with st.sidebar:
-                        st.markdown("<hr style='border-color:rgba(255,255,255,0.07);margin:8px 0;'>", unsafe_allow_html=True)
-                        d1 = st.date_input("Data Inicial", df['date'].min().date())
-                        d2 = st.date_input("Data Final", df['date'].max().date())
+                    # FILTRAGEM POR PERÍODO
+                    agora = datetime.now()
+                    if periodo == "1H": start_date = agora - pd.Timedelta(hours=1)
+                    elif periodo == "1D": start_date = agora - pd.Timedelta(days=1)
+                    elif periodo == "1W": start_date = agora - pd.Timedelta(weeks=1)
+                    elif periodo == "1M": start_date = agora - pd.Timedelta(days=30)
+                    else: start_date = agora - pd.Timedelta(days=365)
 
-                    df_f = df[(df['date'].dt.date >= d1) & (df['date'].dt.date <= d2)]
+                    # Saldo Total Real (Sempre o saldo atual da conta independente do filtro)
+                    saldo_real_atual = sum(c['saldo'] for c in info_contas) if info_contas else 0
+
+                    df_f = df[df['date'] >= start_date]
 
                     entradas = df_f[df_f['tipo']=='Entrada']['valor_abs'].sum()
                     saidas = df_f[df_f['tipo']=='Saída']['valor_abs'].sum()
-                    saldo_total = sum(c['saldo'] for c in info_contas) if info_contas else (entradas - saidas)
 
                     # ── MARKET OVERVIEW TOP CARDS ──
                     st.markdown("""
@@ -1184,23 +1205,23 @@ connect.init();
                     """, unsafe_allow_html=True)
 
                     c1, c2, c3, c4 = st.columns(4)
-                    c1.markdown(f'<div class="market-card"><div class="market-label">SALDO TOTAL</div><div class="market-value">R$ {saldo_total:,.2f}</div><div class="market-change up">▲ Atualizado</div></div>', unsafe_allow_html=True)
-                    c2.markdown(f'<div class="market-card"><div class="market-label">ENTRADAS</div><div class="market-value">R$ {entradas:,.2f}</div><div class="market-change up">▲ No período</div></div>', unsafe_allow_html=True)
-                    c3.markdown(f'<div class="market-card"><div class="market-label">SAÍDAS</div><div class="market-value">R$ {saidas:,.2f}</div><div class="market-change down">▼ No período</div></div>', unsafe_allow_html=True)
-                    c4.markdown(f'<div class="market-card"><div class="market-label">TRANSAÇÕES</div><div class="market-value">{len(df_f)}</div><div class="market-change up">Ativas</div></div>', unsafe_allow_html=True)
+                    c1.markdown(f'<div class="market-card"><div class="market-label">SALDO TOTAL ATUAL</div><div class="market-value">R$ {saldo_real_atual:,.2f}</div><div class="market-change up">▲ Real-time</div></div>', unsafe_allow_html=True)
+                    c2.markdown(f'<div class="market-card"><div class="market-label">ENTRADAS ({periodo})</div><div class="market-value">R$ {entradas:,.2f}</div><div class="market-change up">▲ No período</div></div>', unsafe_allow_html=True)
+                    c3.markdown(f'<div class="market-card"><div class="market-label">SAÍDAS ({periodo})</div><div class="market-value">R$ {saidas:,.2f}</div><div class="market-change down">▼ No período</div></div>', unsafe_allow_html=True)
+                    c4.markdown(f'<div class="market-card"><div class="market-label">TRANSAÇÕES</div><div class="market-value">{len(df_f)}</div><div class="market-change up">No período</div></div>', unsafe_allow_html=True)
 
                     # ── MAIN CANDLESTICK CHART ──
                     st.markdown("<div class='market-card' style='padding: 20px;'>", unsafe_allow_html=True)
-                    st.markdown("<h5 style='margin-bottom:20px;'>📈 Tendência de Fluxo</h5>", unsafe_allow_html=True)
+                    st.markdown(f"<h5 style='margin-bottom:20px;'>📈 Tendência de Fluxo ({periodo})</h5>", unsafe_allow_html=True)
 
                     df_candle = df_f.copy()
                     df_candle['date_only'] = df_candle['date'].dt.date
                     df_candle['valor_sinal'] = df_candle.apply(lambda r: r['valor_abs'] if r['tipo']=='Entrada' else -r['valor_abs'], axis=1)
                     df_daily = df_candle.groupby('date_only')['valor_sinal'].sum().reset_index()
-                    df_daily['close'] = df_daily['valor_sinal'].cumsum() + (saldo_total - df_daily['valor_sinal'].sum())
+                    df_daily['close'] = df_daily['valor_sinal'].cumsum() + (saldo_real_atual - df_daily['valor_sinal'].sum())
                     df_daily['open'] = df_daily['close'].shift(1).fillna(df_daily['close'] - df_daily['valor_sinal'])
-                    df_daily['high'] = df_daily[['open', 'close']].max(axis=1) * 1.01
-                    df_daily['low'] = df_daily[['open', 'close']].min(axis=1) * 0.99
+                    df_daily['high'] = df_daily[['open', 'close']].max(axis=1) * 1.005
+                    df_daily['low'] = df_daily[['open', 'close']].min(axis=1) * 0.995
 
                     import plotly.graph_objects as go
                     fig_candle = go.Figure(data=[go.Candlestick(x=df_daily['date_only'],
@@ -1217,7 +1238,7 @@ connect.init();
                     col_b1, col_b2 = st.columns([2, 1])
                     with col_b1:
                         st.markdown("<div class='market-card' style='height: 450px; overflow: auto;'><h5>🧾 Transações Recentes</h5>", unsafe_allow_html=True)
-                        df_ext = df_f[['date','descricao_completa','valor_abs','tipo','categoria']].copy().sort_values('date',ascending=False)
+                        df_ext = df_f[['date','descricao_completa','valor_abs','tipo','categoria']].copy().sort_values('date',ascending=False).head(10)
                         df_ext.columns = ['Data','Descrição','Valor','Tipo','Categoria']
                         st.dataframe(df_ext, use_container_width=True, hide_index=True)
                         st.markdown("</div>", unsafe_allow_html=True)
@@ -1231,8 +1252,8 @@ connect.init();
                             st.plotly_chart(fig_p, use_container_width=True)
 
                         st.markdown("<hr style='border-color:rgba(255,255,255,0.05)'>", unsafe_allow_html=True)
-                        st.download_button("📊 Exportar Excel", gerar_excel(df_ext, entradas, saidas, saldo_total, 0), "relatorio.xlsx", use_container_width=True)
-                        st.download_button("📄 Exportar PDF", gerar_pdf(df_ext, entradas, saidas, saldo_total, 0), "relatorio.pdf", use_container_width=True)
+                        st.download_button("📊 Exportar Excel", gerar_excel(df_ext, entradas, saidas, saldo_real_atual, 0), "relatorio.xlsx", use_container_width=True)
+                        st.download_button("📄 Exportar PDF", gerar_pdf(df_ext, entradas, saidas, saldo_real_atual, 0), "relatorio.pdf", use_container_width=True)
                         st.markdown("</div>", unsafe_allow_html=True)
 
 
