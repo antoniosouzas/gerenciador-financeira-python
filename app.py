@@ -49,9 +49,8 @@ html, body, [class*="css"] {
 .stApp { background-color: var(--bg) !important; }
 
 footer { visibility: hidden !important; }
-[data-testid="stHeader"] { background: transparent !important; }
-[data-testid="stHeader"] .stAppDeployButton { display: none !important; }
-[data-testid="stToolbar"] { display: none !important; }
+[data-testid="stToolbar"] { visibility: hidden !important; }
+[data-testid="stDecoration"] { display: none !important; }
 .block-container { 
     padding: 1.5rem 2rem 2rem 2rem !important;
     max-width: 100% !important;
