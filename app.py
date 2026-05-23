@@ -52,6 +52,30 @@ footer { visibility: hidden !important; }
 .stAppDeployButton { display: none !important; }
 [data-testid="stToolbar"] { visibility: hidden !important; }
 
+/* Forçar exibição e reposicionamento do botão de abrir a barra lateral */
+[data-testid="collapsedControl"] {
+    display: flex !important;
+    visibility: visible !important;
+    position: fixed !important;
+    top: 80px !important; /* Desce o botão para não ficar preso no topo */
+    left: 15px !important; /* Afasta da borda esquerda */
+    z-index: 999999 !important;
+    background-color: var(--card) !important;
+    border: 1px solid var(--cyan) !important;
+    border-radius: 50% !important;
+    color: var(--cyan) !important;
+    box-shadow: 0 0 15px rgba(0,212,232,0.3) !important;
+    transition: all 0.2s ease-in-out !important;
+}
+[data-testid="collapsedControl"]:hover {
+    background-color: var(--cyan) !important;
+    color: var(--bg) !important;
+}
+[data-testid="collapsedControl"] svg {
+    fill: currentColor !important;
+    color: currentColor !important;
+}
+
 .block-container { 
     padding-top: 4rem !important;
     padding-bottom: 2rem !important;
