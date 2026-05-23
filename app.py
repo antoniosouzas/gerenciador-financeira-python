@@ -51,6 +51,17 @@ html, body, [class*="css"] {
 footer { visibility: hidden !important; }
 [data-testid="stToolbar"] { visibility: hidden !important; }
 [data-testid="stDecoration"] { display: none !important; }
+
+/* Garante que o botão de expandir a sidebar sempre apareça */
+[data-testid="collapsedControl"] { 
+    display: flex !important; 
+    z-index: 999999 !important; 
+    color: var(--cyan) !important;
+    background: var(--card) !important;
+    border-radius: 50% !important;
+    border: 1px solid var(--cyan) !important;
+    box-shadow: 0 0 10px rgba(0,212,232,0.2) !important;
+}
 .block-container { 
     padding: 1.5rem 2rem 2rem 2rem !important;
     max-width: 100% !important;
