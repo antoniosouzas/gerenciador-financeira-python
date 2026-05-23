@@ -39,19 +39,23 @@ st.markdown("""
     --r:         12px;
 }
 
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0');
+
 /* ── RESET & BASE ── */
-html, body, p, h1, h2, h3, h4, h5, h6, span, div {
+.stApp, p, h1, h2, h3, h4, h5, h6, label, input, button {
     font-family: 'Inter', sans-serif;
 }
 html, body {
     color: var(--t1);
 }
-/* Revert font for icons explicitly */
-.material-icons, .material-symbols-rounded, [class*="icon"], [data-testid="collapsedControl"] svg {
+
+/* Força a fonte de ícones na barra lateral */
+[data-testid="collapsedControl"] span, 
+[data-testid="collapsedControl"] div, 
+[data-testid="collapsedControl"] svg,
+[data-testid="collapsedControl"] {
     font-family: 'Material Symbols Rounded', 'Material Icons', sans-serif !important;
 }
-
-@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 
 .stApp { background-color: var(--bg) !important; }
 
