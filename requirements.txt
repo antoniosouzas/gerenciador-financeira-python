@@ -5,5 +5,5 @@ requests
 python-dotenv
 fpdf2
 xlsxwriter
-psycopg2-binarystreamlit-option-menu
+psycopg2-binary
 streamlit-option-menu
