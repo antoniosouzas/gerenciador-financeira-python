@@ -21,23 +21,24 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-    --sidebar-w: 200px;
-    --bg:        #0e1117;
-    --sidebar:   #161b27;
-    --card:      #1c2333;
-    --card2:     #1a2035;
-    --input-bg:  #1e2640;
-    --cyan:      #00d4e8;
+    --sidebar-w: 240px;
+    --bg:        #0f111a;
+    --sidebar:   #161b22;
+    --card:      #1c212d;
+    --card2:     #1f2433;
+    --input-bg:  #1e2433;
+    --accent:    #a2e9e5;
+    --cyan:      #a2e9e5;
     --blue:      #3b8beb;
-    --green:     #00c896;
-    --red:       #ff5e6c;
-    --gold:      #f5a623;
-    --purple:    #7c5cbf;
-    --t1:        #e8edf5;
-    --t2:        #8896b0;
-    --t3:        #4a5568;
-    --border:    rgba(255,255,255,0.07);
-    --r:         12px;
+    --green:     #10b981;
+    --red:       #f43f5e;
+    --gold:      #fbbf24;
+    --purple:    #8b5cf6;
+    --t1:        #ffffff;
+    --t2:        #94a3b8;
+    --t3:        #64748b;
+    --border:    rgba(255,255,255,0.06);
+    --r:         16px;
 }
 
 /* ── BASE BACKGROUND & LAYOUT ── */
@@ -173,62 +174,71 @@ footer { visibility: hidden !important; }
 
 /* ── NAV RADIO = sidebar nav ── */
 div[role="radiogroup"] {
-    gap: 2px !important;
+    gap: 8px !important;
     display: flex !important;
     flex-direction: column !important;
-    padding: 0 8px;
+    padding: 16px 12px;
 }
 div[role="radiogroup"] > label {
     background: transparent !important;
-    border-radius: 8px !important;
-    padding: 9px 12px !important;
+    border-radius: 12px !important;
+    padding: 12px 16px !important;
     border: none !important;
-    transition: background 0.18s;
-    margin: 1px 0 !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    margin: 0 !important;
     cursor: pointer;
 }
 div[role="radiogroup"] > label:hover {
-    background: rgba(255,255,255,0.05) !important;
+    background: rgba(255,255,255,0.04) !important;
 }
 div[role="radiogroup"] > label[data-checked="true"] {
-    background: rgba(0,212,232,0.12) !important;
-    border-left: 3px solid var(--cyan) !important;
+    background: var(--accent) !important;
+    box-shadow: 0 4px 12px rgba(162, 233, 229, 0.2) !important;
 }
 div[role="radiogroup"] > label[data-checked="true"] p {
-    color: var(--cyan) !important; font-weight: 600 !important;
+    color: #10141d !important;
+    font-weight: 700 !important;
 }
 div[role="radiogroup"] > label p {
+    color: var(--t2);
+    font-size: 0.88rem !important;
+    margin-left: 4px;
+}
+/* Esconder o círculo do radio */
+div[role="radiogroup"] [data-testid="stWidgetSelectionResult"] {
+    display: none !important;
+}
     color: var(--t2) !important; font-weight: 500 !important;
     font-size: 0.85rem !important;
 }
 
 /* ── BUTTONS ── */
 .stButton > button, div[data-testid="stFormSubmitButton"] > button {
-    background: #1c2333 !important; /* Fundo sólido escuro */
-    color: var(--t1) !important;
-    border: none !important; /* Remove o outline/borda transparente */
-    border-radius: 8px !important;
-    padding: 0.6rem 1rem !important;
+    background: transparent !important;
+    color: var(--accent) !important;
+    border: 1.5px solid var(--accent) !important;
+    border-radius: 10px !important;
+    padding: 0.6rem 1.2rem !important;
     font-weight: 600 !important;
     font-size: 0.85rem !important;
-    transition: all 0.2s ease-in-out;
+    transition: all 0.25s;
     width: 100%;
     font-family: 'Inter', sans-serif !important;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.4) !important;
 }
 .stButton > button:hover, div[data-testid="stFormSubmitButton"] > button:hover {
-    background: #252e44 !important;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 15px rgba(0,0,0,0.5) !important;
+    background: rgba(162, 233, 229, 0.05) !important;
+    transform: translateY(-1px);
 }
 .stButton > button[kind="primary"], div[data-testid="stFormSubmitButton"] > button[kind="primary"] {
-    background: linear-gradient(135deg, #3b8beb, #00d4e8) !important;
-    color: #fff !important;
+    background: var(--accent) !important;
+    color: #10141d !important;
+    border: none !important;
     font-weight: 700 !important;
-    box-shadow: 0 4px 15px rgba(0,212,232,0.3) !important;
+    box-shadow: 0 4px 15px rgba(162, 233, 229, 0.2) !important;
 }
 .stButton > button[kind="primary"]:hover {
-    box-shadow: 0 8px 25px rgba(0,212,232,0.5) !important;
+    background: #c2f3f0 !important;
+    box-shadow: 0 6px 20px rgba(162, 233, 229, 0.3) !important;
 }
 
 /* danger button */
@@ -247,23 +257,21 @@ div[role="radiogroup"] > label p {
     background: var(--card) !important;
     border: 1px solid var(--border) !important;
     border-radius: var(--r) !important;
-    padding: 20px !important;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.3) !important;
-    position: relative; overflow: hidden;
+    padding: 24px !important;
+    box-shadow: none !important;
 }
 [data-testid="stMetricContainer"]::after {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, var(--blue), var(--cyan));
+    display: none !important; /* Remove a linha de gradiente no topo */
 }
 [data-testid="stMetricLabel"] p {
     color: var(--t2) !important;
-    font-size: 0.72rem !important; font-weight: 600 !important;
-    text-transform: uppercase; letter-spacing: 0.8px;
+    font-size: 0.85rem !important; font-weight: 500 !important;
+    text-transform: none !important; letter-spacing: normal !important;
 }
 [data-testid="stMetricValue"] div {
     color: var(--t1) !important; font-weight: 700 !important;
-    font-size: 1.45rem !important; font-family: 'Inter', sans-serif !important;
+    font-size: 1.8rem !important; font-family: 'Inter', sans-serif !important;
+    margin-top: 4px;
 }
 
 /* ── INPUTS ── */
@@ -326,23 +334,25 @@ span[data-baseweb="tag"] {
 
 /* ── TABS ── */
 .stTabs [data-baseweb="tab-list"] {
-    background: var(--card) !important;
-    border-radius: 10px !important;
-    padding: 4px !important;
-    border: 1px solid var(--border) !important;
-    gap: 4px !important;
+    background: transparent !important;
+    border-bottom: 1px solid var(--border) !important;
+    padding: 0px !important;
+    border-radius: 0px !important;
+    gap: 24px !important;
 }
 .stTabs [data-baseweb="tab"] {
     background: transparent !important;
     color: var(--t2) !important;
-    border-radius: 7px !important;
-    padding: 7px 18px !important;
-    font-weight: 500 !important; font-size: 0.85rem !important;
+    border-radius: 0px !important;
+    padding: 10px 4px !important;
+    font-weight: 500 !important; font-size: 0.9rem !important;
     font-family: 'Inter', sans-serif !important;
 }
 .stTabs [aria-selected="true"] {
-    background: linear-gradient(135deg, #3b8beb, #00d4e8) !important;
-    color: #0e1117 !important; font-weight: 700 !important;
+    background: transparent !important;
+    color: var(--accent) !important;
+    border-bottom: 2px solid var(--accent) !important;
+    font-weight: 700 !important;
 }
 
 /* ── ALERTS ── */
@@ -774,27 +784,18 @@ else:
     with st.sidebar:
         # ── BRAND ──
         st.markdown(f"""
-        <div class="gfi-brand">
-            <div class="gfi-logo-box">💼</div>
-            <div>
-                <div class="gfi-brand-name">GFI</div>
-                <div class="gfi-brand-sub">Financeiro</div>
+        <div style='display: flex; align-items: center; gap: 12px; padding: 10px 0 30px 0;'>
+            <div style='background: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;'>
+                <span class="material-symbols-rounded" style="color: black; font-size: 20px;">laptop_mac</span>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        # ── AVATAR ──
-        st.markdown(f"""
-        <div class="gfi-avatar-section">
-            <div class="gfi-avatar">{inicial}</div>
-            <div class="gfi-username">Bem-vindo(a), {nome_display}</div>
-            <div class="gfi-userrole">Painel Executivo</div>
+            <div style='color: white; font-weight: 800; font-size: 1.2rem; letter-spacing: 0.5px;'>NOVA DAYS</div>
         </div>
         """, unsafe_allow_html=True)
 
         # ── NAV ──
-        st.markdown('<div class="gfi-section-lbl">Navegação</div>', unsafe_allow_html=True)
+        st.markdown('<div class="gfi-section-lbl" style="margin-bottom: 8px;">MENU</div>', unsafe_allow_html=True)
 
+        # Mapeamento para o menu radio com ícones limpos (usamos o radio original mas injetamos o CSS de pílula)
         nav_options = ["📊 Dashboard", "🔗 Gerir Bancos", "👤 Meu Perfil"]
         if st.session_state['is_admin']:
             nav_options.append("⚙️ Admin")
@@ -820,7 +821,6 @@ else:
     if menu == "⚙️ Admin":
         st.markdown("""
         <div class='page-title-row'>
-            <div class='page-icon-box'>⚙️</div>
             <div>
                 <div class='page-title-txt'>Painel de Controle</div>
                 <div class='page-subtitle-txt'>Gestão de clientes e configurações</div>
@@ -852,7 +852,6 @@ else:
     elif menu == "👤 Meu Perfil":
         st.markdown("""
         <div class='page-title-row'>
-            <div class='page-icon-box'>👤</div>
             <div>
                 <div class='page-title-txt'>Meu Perfil</div>
                 <div class='page-subtitle-txt'>Informações da conta e segurança</div>
@@ -983,7 +982,6 @@ else:
     elif menu == "🔗 Gerir Bancos":
         st.markdown("""
         <div class='page-title-row'>
-            <div class='page-icon-box'>🔗</div>
             <div>
                 <div class='page-title-txt'>Conexões Bancárias</div>
                 <div class='page-subtitle-txt'>Sincronize suas contas e transações</div>
@@ -1074,7 +1072,6 @@ connect.init();
         today_str = datetime.now().strftime("Today is %A, %d %B, %Y")
         st.markdown(f"""
         <div class='page-title-row'>
-            <div class='page-icon-box'>📊</div>
             <div>
                 <div class='page-title-txt'>Dashboard</div>
                 <div class='page-subtitle-txt'>{today_str}</div>
