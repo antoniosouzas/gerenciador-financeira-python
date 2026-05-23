@@ -10,7 +10,6 @@ from fpdf import FPDF
 import streamlit.components.v1 as components
 import psycopg2
 from datetime import datetime
-from streamlit_option_menu import option_menu
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="GFI Financeiro", layout="wide", page_icon="💼")
@@ -48,39 +47,9 @@ html, body, [class*="css"] {
 
 .stApp { background-color: var(--bg) !important; }
 
-footer { visibility: hidden !important; }
-.stAppDeployButton { display: none !important; }
-[data-testid="stToolbar"] { visibility: hidden !important; }
-
-/* Forçar exibição e reposicionamento do botão de abrir a barra lateral */
-[data-testid="collapsedControl"] {
-    display: flex !important;
-    visibility: visible !important;
-    position: fixed !important;
-    top: 80px !important; /* Desce o botão para não ficar preso no topo */
-    left: 15px !important; /* Afasta da borda esquerda */
-    z-index: 999999 !important;
-    background-color: var(--card) !important;
-    border: 1px solid var(--cyan) !important;
-    border-radius: 50% !important;
-    color: var(--cyan) !important;
-    box-shadow: 0 0 15px rgba(0,212,232,0.3) !important;
-    transition: all 0.2s ease-in-out !important;
-}
-[data-testid="collapsedControl"]:hover {
-    background-color: var(--cyan) !important;
-    color: var(--bg) !important;
-}
-[data-testid="collapsedControl"] svg {
-    fill: currentColor !important;
-    color: currentColor !important;
-}
-
+#MainMenu, header, footer { visibility: hidden !important; }
 .block-container { 
-    padding-top: 4rem !important;
-    padding-bottom: 2rem !important;
-    padding-left: 2rem !important;
-    padding-right: 2rem !important;
+    padding: 1.5rem 2rem 2rem 2rem !important;
     max-width: 100% !important;
 }
 
@@ -185,9 +154,9 @@ div[role="radiogroup"] > label p {
 
 /* ── BUTTONS ── */
 .stButton > button {
-    background: transparent !important;
+    background: #1e2640 !important;
     color: var(--cyan) !important;
-    border: 1px solid var(--cyan) !important;
+    border: 1px solid rgba(0,212,232,0.25) !important;
     border-radius: 8px !important;
     padding: 0.5rem 0.9rem !important;
     font-weight: 600 !important;
@@ -198,18 +167,17 @@ div[role="radiogroup"] > label p {
     font-family: 'Inter', sans-serif !important;
 }
 .stButton > button:hover {
-    background: rgba(0,212,232,0.1) !important;
-    color: var(--cyan) !important;
-    border-color: var(--cyan) !important;
-    box-shadow: 0 0 12px rgba(0,212,232,0.2) !important;
+    background: var(--cyan) !important;
+    color: #0e1117 !important;
+    border-color: transparent !important;
+    box-shadow: 0 0 16px rgba(0,212,232,0.3) !important;
 }
 .stButton > button[kind="primary"] {
-    background: rgba(0,212,232,0.05) !important;
-    color: var(--cyan) !important; font-weight: 700 !important;
-    border: 2px solid var(--cyan) !important;
+    background: linear-gradient(135deg, #3b8beb, #00d4e8) !important;
+    color: #0e1117 !important; font-weight: 700 !important;
+    border: none !important;
 }
 .stButton > button[kind="primary"]:hover {
-    background: rgba(0,212,232,0.15) !important;
     box-shadow: 0 0 20px rgba(0,212,232,0.4) !important;
     transform: translateY(-1px);
 }
@@ -244,24 +212,29 @@ div[role="radiogroup"] > label p {
     font-size: 1.45rem !important; font-family: 'Inter', sans-serif !important;
 }
 
-/* ── INPUTS E SELECTBOX MELHORADOS ── */
+/* ── INPUTS ── */
 .stTextInput input,
 .stDateInput input,
 .stTextArea textarea,
-[data-baseweb="input"] input,
-[data-baseweb="select"] > div {
-    background-color: transparent !important;
+[data-baseweb="input"] input {
+    background-color: var(--input-bg) !important;
     color: var(--t1) !important;
-    border: 1px solid rgba(255,255,255,0.15) !important;
+    border: 1px solid var(--border) !important;
     border-radius: 8px !important;
     font-family: 'Inter', sans-serif !important;
     font-size: 0.85rem !important;
-    transition: all 0.2s ease-in-out;
 }
-.stTextInput input:focus, .stDateInput input:focus, [data-baseweb="select"] > div:hover {
+.stTextInput input:focus, .stDateInput input:focus {
     border-color: var(--cyan) !important;
-    box-shadow: 0 0 0 1px var(--cyan) !important;
-    background-color: rgba(0,212,232,0.03) !important;
+    box-shadow: 0 0 0 2px rgba(0,212,232,0.15) !important;
+}
+
+/* ── SELECTBOX ── */
+[data-baseweb="select"] > div {
+    background-color: var(--input-bg) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    color: var(--t1) !important;
 }
 [data-baseweb="select"] * { color: var(--t1) !important; }
 [data-baseweb="menu"] {
@@ -532,21 +505,6 @@ def gerar_connect_token():
     response_token = requests.post("https://api.pluggy.ai/connect_token", headers=headers, json={}, timeout=10)
     return response_token.json().get("accessToken")
 
-def atualizar_dados_usuario(usuario_id, nome, email):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT id FROM usuarios WHERE email = %s AND id != %s", (email, usuario_id))
-        if cursor.fetchone():
-            return False, "Este e-mail já está em uso por outra conta."
-        cursor.execute("UPDATE usuarios SET nome = %s, email = %s WHERE id = %s", (nome, email, usuario_id))
-        conn.commit()
-        return True, "Dados atualizados com sucesso!"
-    except Exception as e:
-        return False, f"Erro ao atualizar dados: {e}"
-    finally:
-        conn.close()
-
 def trocar_senha_usuario(usuario_id, senha_atual, nova_senha):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -781,17 +739,7 @@ else:
         if st.session_state['is_admin']:
             nav_options.append("⚙️ Admin")
 
-        menu = option_menu(
-            menu_title=None,
-            options=nav_options,
-            icons=["", "", "", ""],
-            default_index=0,
-            styles={
-                "container": {"padding": "0!important", "background-color": "transparent", "border": "none"},
-                "nav-link": {"font-size": "14px", "text-align": "left", "margin":"4px 0", "--hover-color": "rgba(255,255,255,0.05)", "color": "#8896b0", "border-radius": "8px"},
-                "nav-link-selected": {"background-color": "rgba(0,212,232,0.12)", "color": "#00d4e8", "border-left": "3px solid #00d4e8", "font-weight": "bold", "border-radius": "8px"},
-            }
-        )
+        menu = st.radio("nav", nav_options, label_visibility="collapsed")
 
         # ── CONTA ──
         st.markdown('<div class="gfi-section-lbl">Conta</div>', unsafe_allow_html=True)
@@ -926,28 +874,6 @@ else:
             st.markdown("</div>", unsafe_allow_html=True)
 
         with col_pass:
-            st.markdown("<h5 style='color:#e8edf5;margin-bottom:12px;'>✏️ Alterar Dados Pessoais</h5>", unsafe_allow_html=True)
-            if st.session_state['usuario_id'] == 999:
-                st.info("Conta de administrador mestre não permite alteração de dados.")
-            else:
-                with st.form("form_alterar_dados"):
-                    novo_nome = st.text_input("Nome", value=nome_exib)
-                    novo_email = st.text_input("E-mail", value=email_exib)
-                    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
-                    if st.form_submit_button("💾 Salvar Dados", type="primary"):
-                        if not novo_nome.strip() or not novo_email.strip():
-                            st.warning("Preencha o nome e o e-mail.")
-                        else:
-                            ok, msg = atualizar_dados_usuario(st.session_state['usuario_id'], novo_nome.strip(), novo_email.strip())
-                            if ok:
-                                st.session_state['usuario_nome'] = novo_nome.strip()
-                                st.session_state['usuario_email'] = novo_email.strip()
-                                st.success(msg)
-                                st.rerun()
-                            else:
-                                st.error(msg)
-                                
-            st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("<h5 style='color:#e8edf5;margin-bottom:12px;'>🔒 Alterar Senha</h5>", unsafe_allow_html=True)
 
             if st.session_state['usuario_id'] == 999:
@@ -1047,7 +973,7 @@ function copiarID(){{navigator.clipboard.writeText(capturedItemId).then(function
 var connect=new PluggyConnect({{connectToken:'{token}',onSuccess:function(data){{capturedItemId=data.item.id;document.getElementById('widget-area').style.display='none';document.getElementById('id-display').textContent=capturedItemId;document.getElementById('success-box').style.display='block';}},onClose:function(){{document.getElementById('widget-area').innerHTML='<p style="color:#8896b0;text-align:center;padding:60px;">Conexão encerrada.</p>';}},onError:function(err){{document.getElementById('widget-area').innerHTML='<p style="color:#ff5e6c;text-align:center;padding:60px;">Erro na conexão.</p>';}} }});
 connect.init();
 </script></body></html>
-""", height=700, scrolling=True)
+""", height=540)
 
                 st.markdown("<p style='color:#8896b0;font-size:0.85rem;margin-top:8px;'>👆 Após conectar, copie o ID e cole aqui:</p>", unsafe_allow_html=True)
                 item_id_input = st.text_input("ID da Conexão", placeholder="Cole o ID aqui...", label_visibility="collapsed")
@@ -1274,3 +1200,11 @@ connect.init();
                         c_ex1.download_button("📊 Baixar Excel", gerar_excel(df_export, entradas, saidas, saldo, total_cartao), "extrato.xlsx")
                         c_ex2.download_button("📄 Baixar PDF", gerar_pdf(df_export, entradas, saidas, saldo, total_cartao), "relatorio.pdf")
 
+                        st.markdown("---")
+                        with st.expander("🛠️ Modo Desenvolvedor: Inspecionar Dados do Banco"):
+                            st.info("Dados puros retornados pelo banco.")
+                            pix_brutos = [t for t in trans if 'pix' in str(t.get('description','')).lower() or 'pix' in str(t.get('descriptionRaw','')).lower()]
+                            if pix_brutos: st.json(pix_brutos[:5])
+                            else: st.warning("Nenhuma transação PIX encontrada.")
+
+                            
