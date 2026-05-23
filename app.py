@@ -1206,5 +1206,4 @@ connect.init();
                             pix_brutos = [t for t in trans if 'pix' in str(t.get('description','')).lower() or 'pix' in str(t.get('descriptionRaw','')).lower()]
                             if pix_brutos: st.json(pix_brutos[:5])
                             else: st.warning("Nenhuma transação PIX encontrada.")
-
                             
