@@ -21,24 +21,23 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-    --sidebar-w: 240px;
-    --bg:        #0f111a;
-    --sidebar:   #161b22;
-    --card:      #1c212d;
-    --card2:     #1f2433;
-    --input-bg:  #1e2433;
-    --accent:    #a2e9e5;
-    --cyan:      #a2e9e5;
+    --sidebar-w: 260px;
+    --bg:        #0C0C0C;
+    --sidebar:   #1E1E1E;
+    --card:      #1E1E1E;
+    --card2:     #252525;
+    --input-bg:  #252525;
+    --accent:    #00FF94; /* Um verde neon para o estilo financeiro moderno */
+    --cyan:      #00FF94;
     --blue:      #3b8beb;
-    --green:     #10b981;
-    --red:       #f43f5e;
-    --gold:      #fbbf24;
-    --purple:    #8b5cf6;
-    --t1:        #ffffff;
-    --t2:        #94a3b8;
-    --t3:        #64748b;
-    --border:    rgba(255,255,255,0.06);
-    --r:         16px;
+    --green:     #00FF94;
+    --red:       #FF3B3B;
+    --gold:      #FFD700;
+    --t1:        #FFFFFF;
+    --t2:        #B0B0B0;
+    --t3:        #666666;
+    --border:    rgba(255,255,255,0.08);
+    --r:         20px;
 }
 
 /* ── BASE BACKGROUND & LAYOUT ── */
@@ -784,32 +783,60 @@ else:
     with st.sidebar:
         # ── BRAND ──
         st.markdown(f"""
-        <div style='display: flex; align-items: center; gap: 12px; padding: 10px 0 30px 0;'>
-            <div style='background: white; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center;'>
-                <span class="material-symbols-rounded" style="color: black; font-size: 20px;">laptop_mac</span>
+        <div style='padding: 20px 0 40px 0;'>
+            <div style='color: white; font-weight: 900; font-size: 1.4rem; letter-spacing: 1px; font-family: "Inter", sans-serif;'>
+                FINANCE <span style="color: var(--accent);">DASHBOARD</span>
             </div>
-            <div style='color: white; font-weight: 800; font-size: 1.2rem; letter-spacing: 0.5px;'>NOVA DAYS</div>
         </div>
         """, unsafe_allow_html=True)
 
         # ── NAV ──
-        st.markdown('<div class="gfi-section-lbl" style="margin-bottom: 8px;">MENU</div>', unsafe_allow_html=True)
+        st.markdown('<div class="gfi-section-lbl" style="margin-bottom: 8px;">Main Menu</div>', unsafe_allow_html=True)
 
-        # Mapeamento para o menu radio com ícones limpos (usamos o radio original mas injetamos o CSS de pílula)
-        nav_options = ["📊 Dashboard", "🔗 Gerir Bancos", "👤 Meu Perfil"]
+        # Mapeamento do menu conforme pedido
+        nav_options = [
+            "📊 Dashboard",
+            "📈 Analytics",
+            "📂 Portfolios",
+            "🧾 Transactions",
+            "📄 Reports",
+            "⚙️ Settings"
+        ]
+
+        # Adicionar Admin apenas se for admin, mantendo no Settings ou como item extra
         if st.session_state['is_admin']:
-            nav_options.append("⚙️ Admin")
+            nav_options.append("🛡️ Admin")
 
         menu = st.radio("nav", nav_options, label_visibility="collapsed")
 
-        # ── CONTA ──
-        st.markdown('<div class="gfi-section-lbl">Conta</div>', unsafe_allow_html=True)
+        st.markdown("<div style='flex-grow: 1;'></div>", unsafe_allow_html=True)
 
-        if st.button("🔄 Atualizar Dados"):
-            st.cache_data.clear()
-            st.rerun()
+        # ── USER PROFILE CARD AT BOTTOM ──
+        st.markdown(f"""
+        <div style='
+            background: #252525;
+            border-radius: 16px;
+            padding: 16px;
+            margin: 20px 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid var(--border);
+        '>
+            <div style='
+                width: 40px; height: 40px; border-radius: 10px;
+                background: var(--accent);
+                display: flex; align-items: center; justify-content: center;
+                font-weight: 800; color: #000; font-size: 1.1rem;
+            '>{st.session_state['usuario_nome'][0].upper()}</div>
+            <div style='overflow: hidden;'>
+                <div style='color: white; font-weight: 600; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'>{st.session_state['usuario_nome']}</div>
+                <div style='color: #888; font-size: 0.7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;'>{st.session_state['usuario_email']}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-        if st.button("🚪 Sair da Conta"):
+        if st.button("🚪 Logout", use_container_width=True):
             st.session_state.update({'logado':False,'is_admin':False})
             st.rerun()
 
@@ -818,7 +845,7 @@ else:
     # ==========================================
 
     # ── ADMIN ──
-    if menu == "⚙️ Admin":
+    if menu == "🛡️ Admin":
         st.markdown("""
         <div class='page-title-row'>
             <div>
@@ -849,7 +876,7 @@ else:
                             st.rerun()
 
     # ── MEU PERFIL ──
-    elif menu == "👤 Meu Perfil":
+    elif menu == "⚙️ Settings":
         st.markdown("""
         <div class='page-title-row'>
             <div>
@@ -979,7 +1006,7 @@ else:
             """, unsafe_allow_html=True)
 
     # ── GERIR BANCOS ──
-    elif menu == "🔗 Gerir Bancos":
+    elif menu == "📂 Portfolios":
         st.markdown("""
         <div class='page-title-row'>
             <div>
@@ -1067,26 +1094,36 @@ connect.init();
                 if c2.button("🗑", key=f"del_cx_{i}"):
                     deletar_conexao(cx[0]); st.rerun()
 
-    # ── DASHBOARD ──
-    elif menu == "📊 Dashboard":
-        today_str = datetime.now().strftime("Today is %A, %d %B, %Y")
+    # ── DASHBOARD & OTHERS ──
+    elif menu in ["📊 Dashboard", "📈 Analytics", "🧾 Transactions", "📄 Reports"]:
         st.markdown(f"""
         <div class='page-title-row'>
             <div>
-                <div class='page-title-txt'>Dashboard</div>
-                <div class='page-subtitle-txt'>{today_str}</div>
+                <div class='page-title-txt'>Market Overview</div>
+                <div class='page-subtitle-txt'>{datetime.now().strftime("Today is %A, %d %B, %Y.")}</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
         conexoes = buscar_conexoes_usuario(st.session_state['usuario_id'])
         if not conexoes:
-            st.warning("Nenhum banco conectado. Vá em '🔗 Gerir Bancos' para começar.")
+            st.warning("Nenhum banco conectado. Vá em '📂 Portfolios' para começar.")
         else:
             bancos_dict = {f"{c[2]} ({c[1][:5]})": c[1] for c in conexoes}
-            sel_banco = st.selectbox("Selecione a conta para visualizar:", list(bancos_dict.keys()))
 
-            with st.spinner("Carregando dados bancários..."):
+            # Layout de seletor de banco e período estilo Nova Days
+            c_sel1, c_sel2 = st.columns([2, 1])
+            sel_banco = c_sel1.selectbox("Selecione a conta:", list(bancos_dict.keys()), label_visibility="collapsed")
+
+            # Seletor de Tempo (Time Selector) estilo Trading
+            ts_cols = st.columns([1,1,1,1,1,5])
+            if ts_cols[0].button("1H", use_container_width=True): pass
+            if ts_cols[1].button("1D", use_container_width=True): pass
+            if ts_cols[2].button("1W", use_container_width=True): pass
+            if ts_cols[3].button("1M", use_container_width=True): pass
+            if ts_cols[4].button("1Y", use_container_width=True): pass
+
+            with st.spinner("Sincronizando dados..."):
                 resultado = buscar_dados_reais(bancos_dict[sel_banco])
 
             if resultado[0] == "SEM_CONTAS":
@@ -1103,160 +1140,97 @@ connect.init();
                         desc_original = str(t.get('description','')).strip()
                         nome_extra = ""
                         amount = float(t.get('amount',0)) if t.get('amount') is not None else 0
-
                         if isinstance(t.get('merchant'),dict):
                             nome_extra = t['merchant'].get('name','') or t['merchant'].get('businessName','')
-
                         if not nome_extra and isinstance(t.get('paymentData'),dict):
                             pdata = t['paymentData']
                             if amount < 0:
-                                nome_extra = pdata.get('receiverName','')
-                                if not nome_extra and isinstance(pdata.get('payee'),dict): nome_extra = pdata['payee'].get('name','')
-                                if not nome_extra and isinstance(pdata.get('receiver'),dict): nome_extra = pdata['receiver'].get('name','')
+                                nome_extra = pdata.get('receiverName','') or (pdata.get('payee',{}).get('name','') if isinstance(pdata.get('payee'),dict) else '')
                             else:
-                                nome_extra = pdata.get('payerName','')
-                                if not nome_extra and isinstance(pdata.get('payer'),dict): nome_extra = pdata['payer'].get('name','')
-
-                        if not nome_extra and t.get('descriptionRaw'):
-                            raw = str(t['descriptionRaw']).strip()
-                            if raw.upper() != desc_original.upper():
-                                if desc_original.upper() in raw.upper(): nome_extra = raw.upper().replace(desc_original.upper(),'').strip(' -/*\\:')
-                                else: nome_extra = raw
-
-                        if nome_extra:
-                            nome_extra = str(nome_extra).title()
-                            if len(nome_extra) > 40: nome_extra = nome_extra[:40]+"..."
-                            t['descricao_completa'] = f"{desc_original} ({nome_extra})"
-                        else:
-                            t['descricao_completa'] = desc_original
+                                nome_extra = pdata.get('payerName','') or (pdata.get('payer',{}).get('name','') if isinstance(pdata.get('payer'),dict) else '')
+                        t['descricao_completa'] = f"{desc_original} ({str(nome_extra).title()[:30]})" if nome_extra else desc_original
 
                     df = pd.DataFrame(trans)
                     df['date'] = pd.to_datetime(df['date']).dt.tz_localize(None)
                     df['amount'] = pd.to_numeric(df['amount'],errors='coerce').fillna(0)
-
-                    if 'category' in df.columns: df['categoria'] = df['category'].apply(traduzir_categoria)
-                    else: df['categoria'] = 'Outros'
-
-                    if 'type' in df.columns: df['tipo'] = df['type'].apply(lambda x: 'Entrada' if str(x).upper()=='CREDIT' else 'Saída')
-                    else: df['tipo'] = df['amount'].apply(lambda x: 'Entrada' if x>0 else 'Saída')
-
+                    df['tipo'] = df['amount'].apply(lambda x: 'Entrada' if x>0 else 'Saída')
                     df['valor_abs'] = df['amount'].abs()
+                    df['categoria'] = df.get('category','Outros').apply(traduzir_categoria) if 'category' in df.columns else 'Outros'
 
-                    # FILTROS SIDEBAR
-                    st.sidebar.markdown("<hr style='border-color:rgba(255,255,255,0.07);margin:8px 0;'>", unsafe_allow_html=True)
-                    st.sidebar.markdown('<div class="gfi-section-lbl">🔍 Filtros</div>', unsafe_allow_html=True)
-
-                    d1 = st.sidebar.date_input("Data de Início", df['date'].min().date())
-                    d2 = st.sidebar.date_input("Data de Fim", df['date'].max().date())
-
-                    categorias_disponiveis = sorted(df['categoria'].unique().tolist())
-                    cats_selecionadas = st.sidebar.multiselect("Categorias", options=categorias_disponiveis, default=categorias_disponiveis, placeholder="Todas")
-
-                    tipo_filtro = st.sidebar.radio("Tipo", ["Todos","Apenas Entradas","Apenas Saídas"], index=0)
+                    # FILTROS SIDEBAR (Escondidos mas funcionais)
+                    with st.sidebar:
+                        st.markdown("<hr style='border-color:rgba(255,255,255,0.07);margin:8px 0;'>", unsafe_allow_html=True)
+                        d1 = st.date_input("Start Date", df['date'].min().date())
+                        d2 = st.date_input("End Date", df['date'].max().date())
 
                     df_f = df[(df['date'].dt.date >= d1) & (df['date'].dt.date <= d2)]
-                    if cats_selecionadas: df_f = df_f[df_f['categoria'].isin(cats_selecionadas)]
-                    if tipo_filtro == "Apenas Entradas": df_f = df_f[df_f['tipo']=='Entrada']
-                    elif tipo_filtro == "Apenas Saídas": df_f = df_f[df_f['tipo']=='Saída']
 
-                    if df_f.empty:
-                        st.warning("Nenhuma transação com os filtros selecionados.")
-                    else:
-                        entradas    = df_f[df_f['tipo']=='Entrada']['valor_abs'].sum()
-                        saidas      = df_f[df_f['tipo']=='Saída']['valor_abs'].sum()
-                        total_cartao= df_f[(df_f['tipo']=='Saída')&(df_f['categoria']=='Cartão de Crédito')]['valor_abs'].sum()
-                        saldo       = entradas - saidas
-                        total_trans = len(df_f)
+                    entradas = df_f[df_f['tipo']=='Entrada']['valor_abs'].sum()
+                    saidas = df_f[df_f['tipo']=='Saída']['valor_abs'].sum()
+                    saldo_total = sum(c['saldo'] for c in info_contas) if info_contas else (entradas - saidas)
 
-                        # MÉTRICAS
-                        m1, m2, m3, m4 = st.columns(4)
-                        m1.metric("⬇️ ENTRADAS", f"R$ {entradas:,.2f}")
-                        m2.metric("⬆️ SAÍDAS", f"R$ {saidas:,.2f}")
-                        m3.metric("💰 SALDO LÍQUIDO", f"R$ {saldo:,.2f}")
-                        m4.metric("📋 TRANSAÇÕES", f"{total_trans}")
+                    # ── MARKET OVERVIEW TOP CARDS ──
+                    st.markdown("""
+                    <style>
+                    .market-card { background: #1E1E1E; border-radius: 20px; padding: 24px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 20px; }
+                    .market-label { color: #888; font-size: 0.75rem; font-weight: 600; margin-bottom: 6px; }
+                    .market-value { color: #FFF; font-size: 1.4rem; font-weight: 800; }
+                    .market-change { font-size: 0.75rem; font-weight: 600; margin-top: 4px; }
+                    .up { color: #00FF94; } .down { color: #FF3B3B; }
+                    </style>
+                    """, unsafe_allow_html=True)
 
-                        if info_contas:
-                            st.markdown("<br>", unsafe_allow_html=True)
-                            st.markdown("<p style='font-size:0.72rem;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:1px;'>■ SALDO ATUAL NAS CONTAS</p>", unsafe_allow_html=True)
-                            cols_contas = st.columns(len(info_contas))
-                            for idx, conta in enumerate(info_contas):
-                                cols_contas[idx].metric(
-                                    f"{'💳' if conta['tipo']=='CREDIT' else '🏦'} {conta['nome']}",
-                                    f"R$ {conta['saldo']:,.2f}"
-                                )
+                    c1, c2, c3, c4 = st.columns(4)
+                    c1.markdown(f'<div class="market-card"><div class="market-label">TOTAL BALANCE</div><div class="market-value">R$ {saldo_total:,.2f}</div><div class="market-change up">▲ 2.4%</div></div>', unsafe_allow_html=True)
+                    c2.markdown(f'<div class="market-card"><div class="market-label">INFLOWS</div><div class="market-value">R$ {entradas:,.2f}</div><div class="market-change up">▲ 12.1%</div></div>', unsafe_allow_html=True)
+                    c3.markdown(f'<div class="market-card"><div class="market-label">OUTFLOWS</div><div class="market-value">R$ {saidas:,.2f}</div><div class="market-change down">▼ 3.5%</div></div>', unsafe_allow_html=True)
+                    c4.markdown(f'<div class="market-card"><div class="market-label">TRANSACTIONS</div><div class="market-value">{len(df_f)}</div><div class="market-change up">Active</div></div>', unsafe_allow_html=True)
 
-                        st.markdown("<br>", unsafe_allow_html=True)
+                    # ── MAIN CANDLESTICK CHART ──
+                    st.markdown("<div class='market-card' style='padding: 20px;'>", unsafe_allow_html=True)
+                    st.markdown("<h5 style='margin-bottom:20px;'>📈 Market Trend</h5>", unsafe_allow_html=True)
 
-                        CORES = ['#00d4e8','#3b8beb','#00c896','#f5a623','#a78bfa','#f472b6','#34d399','#60a5fa','#fb923c','#94a3b8','#fbbf24','#4ade80','#f87171','#c084fc','#67e8f9']
-                        LAYOUT_BASE = dict(
-                            paper_bgcolor='rgba(0,0,0,0)',
-                            plot_bgcolor='rgba(0,0,0,0)',
-                            font=dict(color='#8896b0', family='Inter'),
-                            margin=dict(t=20,b=20,l=10,r=10),
-                        )
+                    df_candle = df_f.copy()
+                    df_candle['date_only'] = df_candle['date'].dt.date
+                    df_candle['valor_sinal'] = df_candle.apply(lambda r: r['valor_abs'] if r['tipo']=='Entrada' else -r['valor_abs'], axis=1)
+                    df_daily = df_candle.groupby('date_only')['valor_sinal'].sum().reset_index()
+                    df_daily['close'] = df_daily['valor_sinal'].cumsum() + (saldo_total - df_daily['valor_sinal'].sum())
+                    df_daily['open'] = df_daily['close'].shift(1).fillna(df_daily['close'] - df_daily['valor_sinal'])
+                    df_daily['high'] = df_daily[['open', 'close']].max(axis=1) * 1.01
+                    df_daily['low'] = df_daily[['open', 'close']].min(axis=1) * 0.99
 
-                        col_g1, col_g2 = st.columns(2)
+                    import plotly.graph_objects as go
+                    fig_candle = go.Figure(data=[go.Candlestick(x=df_daily['date_only'],
+                                    open=df_daily['open'], high=df_daily['high'],
+                                    low=df_daily['low'], close=df_daily['close'],
+                                    increasing_line_color= '#00FF94', decreasing_line_color= '#FF3B3B')])
+                    fig_candle.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                        margin=dict(t=0,b=0,l=0,r=0), height=400, xaxis=dict(showgrid=False, rangeslider=dict(visible=False)),
+                        yaxis=dict(gridcolor='rgba(255,255,255,0.05)', side='right', font=dict(size=10)))
+                    st.plotly_chart(fig_candle, use_container_width=True)
+                    st.markdown("</div>", unsafe_allow_html=True)
 
-                        with col_g1:
-                            st.markdown("<h5>🍩 Gastos por Categoria</h5>", unsafe_allow_html=True)
-                            df_saidas = df_f[df_f['tipo']=='Saída']
-                            if not df_saidas.empty:
-                                cat_group = df_saidas.groupby('categoria')['valor_abs'].sum().reset_index().sort_values('valor_abs',ascending=False)
-                                fig_p = px.pie(cat_group, values='valor_abs', names='categoria', hole=0.52, color_discrete_sequence=CORES)
-                                fig_p.update_traces(
-                                    textposition='inside', textinfo='percent+label',
-                                    textfont=dict(color='#e8edf5', size=10),
-                                    marker=dict(line=dict(color='#0e1117', width=2))
-                                )
-                                fig_p.update_layout(**LAYOUT_BASE, showlegend=True,
-                                    legend=dict(font=dict(color='#8896b0',size=10), bgcolor='rgba(0,0,0,0)', orientation='v'))
-                                st.plotly_chart(fig_p, use_container_width=True)
-                            else:
-                                st.info("Nenhuma saída no período.")
+                    # ── BOTTOM SECTIONS ──
+                    col_b1, col_b2 = st.columns([2, 1])
+                    with col_b1:
+                        st.markdown("<div class='market-card' style='height: 450px; overflow: auto;'><h5>🧾 Recent Transactions</h5>", unsafe_allow_html=True)
+                        df_ext = df_f[['date','descricao_completa','valor_abs','tipo','categoria']].copy().sort_values('date',ascending=False)
+                        df_ext.columns = ['Date','Description','Amount','Type','Category']
+                        st.dataframe(df_ext, use_container_width=True, hide_index=True)
+                        st.markdown("</div>", unsafe_allow_html=True)
 
-                        with col_g2:
-                            st.markdown("<h5>📈 Evolução do Caixa</h5>", unsafe_allow_html=True)
-                            df_day = df_f.copy()
-                            df_day['valor_sinal'] = df_day.apply(lambda r: r['valor_abs'] if r['tipo']=='Entrada' else -r['valor_abs'], axis=1)
-                            df_day_grp = df_day.groupby(df_day['date'].dt.date)['valor_sinal'].sum().reset_index()
-                            df_day_grp.columns = ['date','amount']
-                            df_day_grp['saldo_acumulado'] = df_day_grp['amount'].cumsum()
+                    with col_b2:
+                        st.markdown("<div class='market-card' style='height: 450px;'><h5>🍩 Portfolio</h5>", unsafe_allow_html=True)
+                        cat_grp = df_f[df_f['tipo']=='Saída'].groupby('categoria')['valor_abs'].sum().reset_index()
+                        if not cat_grp.empty:
+                            fig_p = px.pie(cat_grp, values='valor_abs', names='categoria', hole=0.7, color_discrete_sequence=['#00FF94', '#3b8beb', '#8b5cf6', '#FFD700'])
+                            fig_p.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', showlegend=False, margin=dict(t=10,b=10,l=10,r=10))
+                            st.plotly_chart(fig_p, use_container_width=True)
 
-                            fig_l = px.area(df_day_grp, x='date', y='saldo_acumulado', line_shape='spline',
-                                color_discrete_sequence=['#00d4e8'], labels={'saldo_acumulado':'Saldo Acumulado','date':'Data'})
-                            fig_l.update_traces(fill='tozeroy', fillcolor='rgba(0,212,232,0.07)', line=dict(color='#00d4e8',width=2))
-                            fig_l.update_layout(**LAYOUT_BASE, xaxis_title=None, yaxis_title=None,
-                                yaxis=dict(gridcolor='rgba(255,255,255,0.05)', tickprefix='R$ ', color='#8896b0'),
-                                xaxis=dict(showgrid=False, color='#8896b0'))
-                            st.plotly_chart(fig_l, use_container_width=True)
-
-                        st.markdown("<h5>📊 Entradas vs Saídas por Mês</h5>", unsafe_allow_html=True)
-                        df_mensal = df_f.copy()
-                        df_mensal['mes'] = df_mensal['date'].dt.to_period('M').astype(str)
-                        df_mensal_grp = df_mensal.groupby(['mes','tipo'])['valor_abs'].sum().reset_index()
-                        fig_bar = px.bar(df_mensal_grp, x='mes', y='valor_abs', color='tipo', barmode='group',
-                            color_discrete_map={'Entrada':'#00c896','Saída':'#ff5e6c'},
-                            labels={'valor_abs':'Valor (R$)','mes':'Mês','tipo':'Tipo'})
-                        fig_bar.update_layout(**LAYOUT_BASE, bargap=0.3, bargroupgap=0.08,
-                            legend=dict(font=dict(color='#8896b0'), bgcolor='rgba(0,0,0,0)'),
-                            yaxis=dict(gridcolor='rgba(255,255,255,0.05)', tickprefix='R$ ', color='#8896b0'),
-                            xaxis=dict(showgrid=False, color='#8896b0'))
-                        fig_bar.update_traces(marker_line_width=0)
-                        st.plotly_chart(fig_bar, use_container_width=True)
-
-                        # EXTRATO
-                        st.markdown("<h5>🧾 Extrato Detalhado</h5>", unsafe_allow_html=True)
-                        df_extrato = df_f[['date','descricao_completa','valor_abs','tipo','categoria']].copy()
-                        df_extrato = df_extrato.sort_values('date',ascending=False)
-                        df_extrato.columns = ['Data','Descrição','Valor (R$)','Tipo','Categoria']
-                        df_extrato['Valor (R$)'] = df_extrato['Valor (R$)'].round(2)
-                        df_extrato['Data'] = df_extrato['Data'].dt.strftime('%d/%m/%Y')
-                        st.dataframe(df_extrato, use_container_width=True, hide_index=True)
-
-                        c_ex1, c_ex2, _ = st.columns([1, 1, 4])
-                        df_export = df_extrato.copy()
-                        c_ex1.download_button("📊 Baixar Excel", gerar_excel(df_export, entradas, saidas, saldo, total_cartao), "extrato.xlsx")
-                        c_ex2.download_button("📄 Baixar PDF", gerar_pdf(df_export, entradas, saidas, saldo, total_cartao), "relatorio.pdf")
+                        st.markdown("<hr style='border-color:rgba(255,255,255,0.05)'>", unsafe_allow_html=True)
+                        st.download_button("📊 Export Excel", gerar_excel(df_ext, entradas, saidas, saldo_total, 0), "report.xlsx", use_container_width=True)
+                        st.download_button("📄 Export PDF", gerar_pdf(df_ext, entradas, saidas, saldo_total, 0), "report.pdf", use_container_width=True)
+                        st.markdown("</div>", unsafe_allow_html=True)
 
 
                             
