@@ -48,28 +48,32 @@ html, body {
 /* OCULTA O BOTAO DE RECOLHER A BARRA LATERAL (DEIXA ELA FIXA) E REMOVE O TEXTO BUGADO */
 [data-testid="collapsedControl"],
 .st-emotion-cache-1vt4ygl,
+.st-emotion-cache-6qob1r,
 [kind="header"] {
     display: none !important;
     visibility: hidden !important;
-    opacity: 0 !important;
-    width: 0 !important;
-    height: 0 !important;
 }
-/* E se for um span global solto do header */
-header span.material-symbols-rounded,
-header span.material-icons {
+
+/* REMOVE DEFINITIVAMENTE O TEXTO BUGADO DO STREAMLIT */
+header, [data-testid="stHeader"] {
+    display: none !important;
+    background: transparent !important;
+    color: transparent !important;
+    user-select: none !important;
+    pointer-events: none !important;
+    height: 0px !important;
+}
+header * {
     display: none !important;
 }
-
-
 
 .stApp { background-color: var(--bg) !important; }
 
 footer { visibility: hidden !important; }
 .stAppDeployButton { display: none !important; }
 
-.block-container { 
-    padding-top: 5rem !important;
+.block-container {
+    padding-top: 2rem !important;
     padding-bottom: 2rem !important;
     padding-left: 2rem !important;
     padding-right: 2rem !important;
@@ -177,9 +181,9 @@ div[role="radiogroup"] > label p {
 
 /* ── BUTTONS ── */
 .stButton > button {
-    background: #1e2640 !important;
-    color: var(--cyan) !important;
-    border: 1px solid rgba(0,212,232,0.25) !important;
+    background: linear-gradient(135deg, #1c2333 0%, #161b27 100%) !important;
+    color: var(--t1) !important;
+    border: 1px solid var(--border) !important;
     border-radius: 8px !important;
     padding: 0.5rem 0.9rem !important;
     font-weight: 600 !important;
@@ -188,16 +192,18 @@ div[role="radiogroup"] > label p {
     transition: all 0.2s;
     width: 100%;
     font-family: 'Inter', sans-serif !important;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important;
 }
 .stButton > button:hover {
-    background: var(--cyan) !important;
-    color: #0e1117 !important;
-    border-color: transparent !important;
-    box-shadow: 0 0 16px rgba(0,212,232,0.3) !important;
+    background: var(--blue) !important;
+    color: #fff !important;
+    border-color: var(--blue) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(59,139,235,0.2) !important;
 }
 .stButton > button[kind="primary"] {
     background: linear-gradient(135deg, #3b8beb, #00d4e8) !important;
-    color: #0e1117 !important; font-weight: 700 !important;
+    color: #fff !important; font-weight: 700 !important;
     border: none !important;
 }
 .stButton > button[kind="primary"]:hover {
@@ -207,8 +213,13 @@ div[role="radiogroup"] > label p {
 
 /* danger button */
 .stButton > button[title*="Sair"], .stButton > button[title*="sair"] {
-    border-color: rgba(255,94,108,0.3) !important;
+    background: rgba(255,94,108,0.1) !important;
+    border-color: rgba(255,94,108,0.2) !important;
     color: var(--red) !important;
+}
+.stButton > button[title*="Sair"]:hover, .stButton > button[title*="sair"]:hover {
+    background: var(--red) !important;
+    color: #fff !important;
 }
 
 /* ── METRICS ── */
@@ -340,14 +351,22 @@ p, span, div { font-family: 'Inter', sans-serif !important; }
 
 /* ── DOWNLOAD BUTTON ── */
 .stDownloadButton > button {
-    background: rgba(0,212,232,0.08) !important;
-    color: var(--cyan) !important;
-    border: 1px solid rgba(0,212,232,0.25) !important;
-    border-radius: 8px !important; font-weight: 600 !important;
+    background: linear-gradient(135deg, #1c2333 0%, #161b27 100%) !important;
+    color: var(--t1) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
     font-family: 'Inter', sans-serif !important;
+    width: 100%;
+    transition: all 0.2s;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2) !important;
 }
 .stDownloadButton > button:hover {
-    background: var(--cyan) !important; color: #0e1117 !important;
+    background: var(--blue) !important;
+    color: #fff !important;
+    border-color: var(--blue) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(59,139,235,0.2) !important;
 }
 
 /* ── RADIO (filters) ── */
