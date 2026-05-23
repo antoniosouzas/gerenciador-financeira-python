@@ -39,30 +39,15 @@ st.markdown("""
     --r:         12px;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0');
-
-/* ── RESET & BASE ── */
-.stApp, p, h1, h2, h3, h4, h5, h6, label, input, button {
-    font-family: 'Inter', sans-serif;
-}
+/* ── BASE BACKGROUND & LAYOUT ── */
 html, body {
     color: var(--t1);
-}
-
-/* Força a fonte de ícones na barra lateral */
-[data-testid="collapsedControl"] span, 
-[data-testid="collapsedControl"] div, 
-[data-testid="collapsedControl"] svg,
-[data-testid="collapsedControl"] {
-    font-family: 'Material Symbols Rounded', 'Material Icons', sans-serif !important;
 }
 
 .stApp { background-color: var(--bg) !important; }
 
 footer { visibility: hidden !important; }
 .stAppDeployButton { display: none !important; }
-
-
 
 .block-container { 
     padding-top: 5rem !important;
