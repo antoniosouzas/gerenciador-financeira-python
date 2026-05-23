@@ -10,6 +10,7 @@ from fpdf import FPDF
 import streamlit.components.v1 as components
 import psycopg2
 from datetime import datetime
+from streamlit_option_menu import option_menu
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="GFI Financeiro", layout="wide", page_icon="💼")
@@ -154,9 +155,9 @@ div[role="radiogroup"] > label p {
 
 /* ── BUTTONS ── */
 .stButton > button {
-    background: #1e2640 !important;
+    background: transparent !important;
     color: var(--cyan) !important;
-    border: 1px solid rgba(0,212,232,0.25) !important;
+    border: 1px solid var(--cyan) !important;
     border-radius: 8px !important;
     padding: 0.5rem 0.9rem !important;
     font-weight: 600 !important;
@@ -167,17 +168,18 @@ div[role="radiogroup"] > label p {
     font-family: 'Inter', sans-serif !important;
 }
 .stButton > button:hover {
-    background: var(--cyan) !important;
-    color: #0e1117 !important;
-    border-color: transparent !important;
-    box-shadow: 0 0 16px rgba(0,212,232,0.3) !important;
+    background: rgba(0,212,232,0.1) !important;
+    color: var(--cyan) !important;
+    border-color: var(--cyan) !important;
+    box-shadow: 0 0 12px rgba(0,212,232,0.2) !important;
 }
 .stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #3b8beb, #00d4e8) !important;
-    color: #0e1117 !important; font-weight: 700 !important;
-    border: none !important;
+    background: rgba(0,212,232,0.05) !important;
+    color: var(--cyan) !important; font-weight: 700 !important;
+    border: 2px solid var(--cyan) !important;
 }
 .stButton > button[kind="primary"]:hover {
+    background: rgba(0,212,232,0.15) !important;
     box-shadow: 0 0 20px rgba(0,212,232,0.4) !important;
     transform: translateY(-1px);
 }
@@ -212,29 +214,24 @@ div[role="radiogroup"] > label p {
     font-size: 1.45rem !important; font-family: 'Inter', sans-serif !important;
 }
 
-/* ── INPUTS ── */
+/* ── INPUTS E SELECTBOX MELHORADOS ── */
 .stTextInput input,
 .stDateInput input,
 .stTextArea textarea,
-[data-baseweb="input"] input {
-    background-color: var(--input-bg) !important;
+[data-baseweb="input"] input,
+[data-baseweb="select"] > div {
+    background-color: transparent !important;
     color: var(--t1) !important;
-    border: 1px solid var(--border) !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
     border-radius: 8px !important;
     font-family: 'Inter', sans-serif !important;
     font-size: 0.85rem !important;
+    transition: all 0.2s ease-in-out;
 }
-.stTextInput input:focus, .stDateInput input:focus {
+.stTextInput input:focus, .stDateInput input:focus, [data-baseweb="select"] > div:hover {
     border-color: var(--cyan) !important;
-    box-shadow: 0 0 0 2px rgba(0,212,232,0.15) !important;
-}
-
-/* ── SELECTBOX ── */
-[data-baseweb="select"] > div {
-    background-color: var(--input-bg) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 8px !important;
-    color: var(--t1) !important;
+    box-shadow: 0 0 0 1px var(--cyan) !important;
+    background-color: rgba(0,212,232,0.03) !important;
 }
 [data-baseweb="select"] * { color: var(--t1) !important; }
 [data-baseweb="menu"] {
@@ -739,7 +736,17 @@ else:
         if st.session_state['is_admin']:
             nav_options.append("⚙️ Admin")
 
-        menu = st.radio("nav", nav_options, label_visibility="collapsed")
+        menu = option_menu(
+            menu_title=None,
+            options=nav_options,
+            icons=["", "", "", ""],
+            default_index=0,
+            styles={
+                "container": {"padding": "0!important", "background-color": "transparent", "border": "none"},
+                "nav-link": {"font-size": "14px", "text-align": "left", "margin":"4px 0", "--hover-color": "rgba(255,255,255,0.05)", "color": "#8896b0", "border-radius": "8px"},
+                "nav-link-selected": {"background-color": "rgba(0,212,232,0.12)", "color": "#00d4e8", "border-left": "3px solid #00d4e8", "font-weight": "bold", "border-radius": "8px"},
+            }
+        )
 
         # ── CONTA ──
         st.markdown('<div class="gfi-section-lbl">Conta</div>', unsafe_allow_html=True)
