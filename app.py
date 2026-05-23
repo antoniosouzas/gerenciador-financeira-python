@@ -45,10 +45,22 @@ html, body {
     color: var(--t1);
 }
 
-/* OCULTA O BOTAO DE RECOLHER A BARRA LATERAL (DEIXA ELA FIXA) */
-[data-testid="collapsedControl"] {
+/* OCULTA O BOTAO DE RECOLHER A BARRA LATERAL (DEIXA ELA FIXA) E REMOVE O TEXTO BUGADO */
+[data-testid="collapsedControl"],
+.st-emotion-cache-1vt4ygl,
+[kind="header"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+/* E se for um span global solto do header */
+header span.material-symbols-rounded,
+header span.material-icons {
     display: none !important;
 }
+
 
 
 .stApp { background-color: var(--bg) !important; }
