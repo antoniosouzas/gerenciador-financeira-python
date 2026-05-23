@@ -502,6 +502,21 @@ def gerar_connect_token():
     response_token = requests.post("https://api.pluggy.ai/connect_token", headers=headers, json={}, timeout=10)
     return response_token.json().get("accessToken")
 
+def atualizar_dados_usuario(usuario_id, nome, email):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT id FROM usuarios WHERE email = %s AND id != %s", (email, usuario_id))
+        if cursor.fetchone():
+            return False, "Este e-mail já está em uso por outra conta."
+        cursor.execute("UPDATE usuarios SET nome = %s, email = %s WHERE id = %s", (nome, email, usuario_id))
+        conn.commit()
+        return True, "Dados atualizados com sucesso!"
+    except Exception as e:
+        return False, f"Erro ao atualizar dados: {e}"
+    finally:
+        conn.close()
+
 def trocar_senha_usuario(usuario_id, senha_atual, nova_senha):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -881,6 +896,28 @@ else:
             st.markdown("</div>", unsafe_allow_html=True)
 
         with col_pass:
+            st.markdown("<h5 style='color:#e8edf5;margin-bottom:12px;'>✏️ Alterar Dados Pessoais</h5>", unsafe_allow_html=True)
+            if st.session_state['usuario_id'] == 999:
+                st.info("Conta de administrador mestre não permite alteração de dados.")
+            else:
+                with st.form("form_alterar_dados"):
+                    novo_nome = st.text_input("Nome", value=nome_exib)
+                    novo_email = st.text_input("E-mail", value=email_exib)
+                    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+                    if st.form_submit_button("💾 Salvar Dados", type="primary"):
+                        if not novo_nome.strip() or not novo_email.strip():
+                            st.warning("Preencha o nome e o e-mail.")
+                        else:
+                            ok, msg = atualizar_dados_usuario(st.session_state['usuario_id'], novo_nome.strip(), novo_email.strip())
+                            if ok:
+                                st.session_state['usuario_nome'] = novo_nome.strip()
+                                st.session_state['usuario_email'] = novo_email.strip()
+                                st.success(msg)
+                                st.rerun()
+                            else:
+                                st.error(msg)
+                                
+            st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("<h5 style='color:#e8edf5;margin-bottom:12px;'>🔒 Alterar Senha</h5>", unsafe_allow_html=True)
 
             if st.session_state['usuario_id'] == 999:
@@ -1207,9 +1244,3 @@ connect.init();
                         c_ex1.download_button("📊 Baixar Excel", gerar_excel(df_export, entradas, saidas, saldo, total_cartao), "extrato.xlsx")
                         c_ex2.download_button("📄 Baixar PDF", gerar_pdf(df_export, entradas, saidas, saldo, total_cartao), "relatorio.pdf")
 
-                        st.markdown("---")
-                        with st.expander("🛠️ Modo Desenvolvedor: Inspecionar Dados do Banco"):
-                            st.info("Dados puros retornados pelo banco.")
-                            pix_brutos = [t for t in trans if 'pix' in str(t.get('description','')).lower() or 'pix' in str(t.get('descriptionRaw','')).lower()]
-                            if pix_brutos: st.json(pix_brutos[:5])
-                            else: st.warning("Nenhuma transação PIX encontrada.")
