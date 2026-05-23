@@ -173,40 +173,62 @@ footer { visibility: hidden !important; }
 
 /* ── NAV RADIO = sidebar nav ── */
 div[role="radiogroup"] {
-    gap: 8px !important;
+    gap: 4px !important;
     display: flex !important;
     flex-direction: column !important;
-    padding: 16px 12px;
+    padding: 8px 12px;
 }
 div[role="radiogroup"] > label {
     background: transparent !important;
-    border-radius: 12px !important;
-    padding: 12px 16px !important;
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
     border: none !important;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s;
     margin: 0 !important;
     cursor: pointer;
+    width: 100% !important;
 }
 div[role="radiogroup"] > label:hover {
-    background: rgba(255,255,255,0.04) !important;
+    background: rgba(255,255,255,0.05) !important;
 }
 div[role="radiogroup"] > label[data-checked="true"] {
-    background: var(--accent) !important;
-    box-shadow: 0 4px 12px rgba(162, 233, 229, 0.2) !important;
+    background: rgba(255,255,255,0.1) !important;
 }
 div[role="radiogroup"] > label[data-checked="true"] p {
-    color: #10141d !important;
+    color: var(--accent) !important;
     font-weight: 700 !important;
 }
 div[role="radiogroup"] > label p {
     color: var(--t2);
-    font-size: 0.88rem !important;
-    margin-left: 4px;
+    font-size: 0.85rem !important;
+    margin: 0 !important;
 }
 /* Esconder o círculo do radio */
 div[role="radiogroup"] [data-testid="stWidgetSelectionResult"] {
     display: none !important;
 }
+
+/* ── HORIZONTAL RADIO (Filtros de Tempo) ── */
+div[data-testid="stHorizontalBlock"] div[role="radiogroup"] {
+    flex-direction: row !important;
+    background: #1E1E1E !important;
+    padding: 4px !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--border) !important;
+    width: fit-content !important;
+}
+div[data-testid="stHorizontalBlock"] div[role="radiogroup"] > label {
+    padding: 6px 14px !important;
+    border-radius: 7px !important;
+    width: auto !important;
+}
+div[data-testid="stHorizontalBlock"] div[role="radiogroup"] > label[data-checked="true"] {
+    background: var(--accent) !important;
+}
+div[data-testid="stHorizontalBlock"] div[role="radiogroup"] > label[data-checked="true"] p {
+    color: #000 !important;
+}
+div[data-testid="stHorizontalBlock"] div[role="radiogroup"] > label p {
     color: var(--t2) !important; font-weight: 500 !important;
     font-size: 0.85rem !important;
 }
@@ -574,6 +596,18 @@ def gerar_connect_token():
     response_token = requests.post("https://api.pluggy.ai/connect_token", headers=headers, json={}, timeout=10)
     return response_token.json().get("accessToken")
 
+def atualizar_perfil(usuario_id, nome, email):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("UPDATE usuarios SET nome = %s, email = %s WHERE id = %s", (nome, email, usuario_id))
+        conn.commit()
+        return True, "Perfil atualizado com sucesso!"
+    except Exception as e:
+        return False, f"Erro ao atualizar perfil: {e}"
+    finally:
+        conn.close()
+
 def trocar_senha_usuario(usuario_id, senha_atual, nova_senha):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -795,15 +829,12 @@ else:
 
         # Mapeamento do menu conforme pedido
         nav_options = [
-            "📊 Dashboard",
-            "📈 Analytics",
-            "📂 Portfolios",
-            "🧾 Transactions",
-            "📄 Reports",
-            "⚙️ Settings"
+            "📊 Resumo Financeiro",
+            "🏦 Bancos",
+            "👤 Perfil"
         ]
 
-        # Adicionar Admin apenas se for admin, mantendo no Settings ou como item extra
+        # Adicionar Admin apenas se for admin
         if st.session_state['is_admin']:
             nav_options.append("🛡️ Admin")
 
@@ -876,40 +907,38 @@ else:
                             st.rerun()
 
     # ── MEU PERFIL ──
-    elif menu == "⚙️ Settings":
+    elif menu == "👤 Perfil":
         st.markdown("""
         <div class='page-title-row'>
             <div>
                 <div class='page-title-txt'>Meu Perfil</div>
-                <div class='page-subtitle-txt'>Informações da conta e segurança</div>
+                <div class='page-subtitle-txt'>Gerencie suas informações e segurança</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        col_prof, col_pass = st.columns([1.2, 1])
+        col_prof, col_edit, col_pass = st.columns([1, 1, 1])
+
+        # Tentar buscar dados reais do DB, fallback ao session_state
+        dados_usuario = None
+        if st.session_state['usuario_id'] != 999:
+            dados_usuario = buscar_dados_usuario(st.session_state['usuario_id'])
+
+        nome_exib  = dados_usuario[1] if dados_usuario else st.session_state['usuario_nome']
+        email_exib = dados_usuario[2] if dados_usuario else st.session_state.get('usuario_email', 'N/A')
+        admin_exib = "✅ Sim" if (dados_usuario[3] if dados_usuario else st.session_state['is_admin']) else "❌ Não"
+        cad_exib   = str(dados_usuario[4])[:10] if dados_usuario and dados_usuario[4] else "N/A"
 
         with col_prof:
-            st.markdown("<h5 style='color:#e8edf5;margin-bottom:12px;'>📋 Dados da Conta</h5>", unsafe_allow_html=True)
-
-            # Tentar buscar dados reais do DB, fallback ao session_state
-            dados_usuario = None
-            if st.session_state['usuario_id'] != 999:
-                dados_usuario = buscar_dados_usuario(st.session_state['usuario_id'])
-
-            nome_exib  = dados_usuario[1] if dados_usuario else st.session_state['usuario_nome']
-            email_exib = dados_usuario[2] if dados_usuario else st.session_state.get('usuario_email', 'N/A')
-            admin_exib = "✅ Sim" if (dados_usuario[3] if dados_usuario else st.session_state['is_admin']) else "❌ Não"
-            cad_exib   = str(dados_usuario[4])[:10] if dados_usuario and dados_usuario[4] else "N/A"
-
+            st.markdown("<h5 style='color:#e8edf5;margin-bottom:12px;'>📋 Dados Atuais</h5>", unsafe_allow_html=True)
             st.markdown(f"""
             <div class="profile-info-card">
                 <div style='display:flex;align-items:center;gap:16px;margin-bottom:20px;'>
                     <div style='
                         width:64px;height:64px;border-radius:50%;
-                        background:linear-gradient(135deg,#3b8beb,#00d4e8);
+                        background:var(--accent);
                         display:flex;align-items:center;justify-content:center;
-                        font-size:26px;font-weight:700;color:#fff;
-                        box-shadow:0 0 0 3px rgba(0,212,232,0.2);
+                        font-size:26px;font-weight:700;color:#000;
                     '>{nome_exib[0].upper()}</div>
                     <div>
                         <div style='font-size:1.1rem;font-weight:700;color:#e8edf5;'>{nome_exib}</div>
@@ -917,101 +946,58 @@ else:
                     </div>
                 </div>
                 <div class="profile-info-row">
-                    <span class="profile-info-label">Nome</span>
-                    <span class="profile-info-value">{nome_exib}</span>
-                </div>
-                <div class="profile-info-row">
                     <span class="profile-info-label">E-mail</span>
                     <span class="profile-info-value">{email_exib}</span>
                 </div>
                 <div class="profile-info-row">
-                    <span class="profile-info-label">Administrador</span>
-                    <span class="profile-info-value">{admin_exib}</span>
-                </div>
-                <div class="profile-info-row">
-                    <span class="profile-info-label">Data de Cadastro</span>
+                    <span class="profile-info-label">Cadastro</span>
                     <span class="profile-info-value">{cad_exib}</span>
                 </div>
-                <div class="profile-info-row">
-                    <span class="profile-info-label">ID da Conta</span>
-                    <span class="profile-info-value" style='font-family:monospace;color:#00d4e8;'>#{st.session_state['usuario_id']}</span>
-                </div>
             </div>
             """, unsafe_allow_html=True)
 
-            # Bancos conectados
-            conexoes = buscar_conexoes_usuario(st.session_state['usuario_id'])
-            st.markdown(f"""
-            <div class="profile-info-card" style='margin-top:0'>
-                <div style='font-size:0.85rem;font-weight:700;color:#e8edf5;margin-bottom:12px;'>🏦 Bancos Conectados ({len(conexoes)})</div>
-            """, unsafe_allow_html=True)
-            if not conexoes:
-                st.info("Nenhum banco conectado ainda.")
-            else:
-                for cx in conexoes:
-                    st.markdown(f"""
-                    <div style='display:flex;justify-content:space-between;align-items:center;
-                        padding:8px 12px;background:rgba(0,212,232,0.05);border-radius:8px;
-                        border:1px solid rgba(0,212,232,0.1);margin-bottom:6px;'>
-                        <span style='color:#e8edf5;font-size:0.85rem;'>🏦 {cx[2]}</span>
-                        <span style='color:#8896b0;font-size:0.72rem;font-family:monospace;'>ID: {cx[1][:12]}...</span>
-                    </div>
-                    """, unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
+        with col_edit:
+            st.markdown("<h5 style='color:#e8edf5;margin-bottom:12px;'>✏️ Editar Perfil</h5>", unsafe_allow_html=True)
+            with st.form("form_editar_perfil"):
+                novo_nome = st.text_input("Nome", value=nome_exib)
+                novo_email = st.text_input("E-mail", value=email_exib)
+                if st.form_submit_button("Atualizar Dados", type="primary"):
+                    if novo_nome and novo_email:
+                        sucesso, msg = atualizar_perfil(st.session_state['usuario_id'], novo_nome, novo_email)
+                        if sucesso:
+                            st.session_state['usuario_nome'] = novo_nome
+                            st.session_state['usuario_email'] = novo_email
+                            st.success(msg)
+                            st.rerun()
+                        else:
+                            st.error(msg)
+                    else:
+                        st.warning("Preencha todos os campos.")
 
         with col_pass:
-            st.markdown("<h5 style='color:#e8edf5;margin-bottom:12px;'>🔒 Alterar Senha</h5>", unsafe_allow_html=True)
-
+            st.markdown("<h5 style='color:#e8edf5;margin-bottom:12px;'>🔒 Segurança</h5>", unsafe_allow_html=True)
             if st.session_state['usuario_id'] == 999:
-                st.info("Conta de administrador mestre não permite alteração de senha por aqui.")
+                st.info("Administrador mestre.")
             else:
                 with st.form("form_trocar_senha"):
-                    senha_atual = st.text_input("Senha Atual", type="password", placeholder="••••••••")
-                    nova_senha  = st.text_input("Nova Senha", type="password", placeholder="••••••••")
-                    conf_senha  = st.text_input("Confirmar Nova Senha", type="password", placeholder="••••••••")
-                    st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
-                    if st.form_submit_button("🔒 Alterar Senha", type="primary"):
-                        if not senha_atual or not nova_senha or not conf_senha:
-                            st.warning("Preencha todos os campos.")
-                        elif nova_senha != conf_senha:
-                            st.error("As novas senhas não coincidem.")
-                        elif len(nova_senha) < 6:
-                            st.warning("A nova senha deve ter pelo menos 6 caracteres.")
-                        else:
-                            ok, msg = trocar_senha_usuario(st.session_state['usuario_id'], senha_atual, nova_senha)
+                    s_atual = st.text_input("Senha Atual", type="password")
+                    s_nova = st.text_input("Nova Senha", type="password")
+                    s_conf = st.text_input("Confirmar", type="password")
+                    if st.form_submit_button("Alterar Senha"):
+                        if s_nova == s_conf and len(s_nova) >= 6:
+                            ok, msg = trocar_senha_usuario(st.session_state['usuario_id'], s_atual, s_nova)
                             if ok: st.success(msg)
                             else: st.error(msg)
+                        else:
+                            st.error("Senhas não coincidem ou muito curta.")
 
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("<h5 style='color:#e8edf5;margin-bottom:12px;'>ℹ️ Sobre o Sistema</h5>", unsafe_allow_html=True)
-            st.markdown(f"""
-            <div class="profile-info-card">
-                <div class="profile-info-row">
-                    <span class="profile-info-label">Sistema</span>
-                    <span class="profile-info-value">GFI Financeiro</span>
-                </div>
-                <div class="profile-info-row">
-                    <span class="profile-info-label">Versão</span>
-                    <span class="profile-info-value" style='color:#00d4e8;'>2.0.0</span>
-                </div>
-                <div class="profile-info-row">
-                    <span class="profile-info-label">Plataforma</span>
-                    <span class="profile-info-value">Streamlit + Pluggy API</span>
-                </div>
-                <div class="profile-info-row">
-                    <span class="profile-info-label">Data de Acesso</span>
-                    <span class="profile-info-value">{datetime.now().strftime('%d/%m/%Y %H:%M')}</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-    # ── GERIR BANCOS ──
-    elif menu == "📂 Portfolios":
+    # ── MEUS BANCOS ──
+    elif menu == "🏦 Bancos":
         st.markdown("""
         <div class='page-title-row'>
             <div>
-                <div class='page-title-txt'>Conexões Bancárias</div>
-                <div class='page-subtitle-txt'>Sincronize suas contas e transações</div>
+                <div class='page-title-txt'>Minhas Conexões</div>
+                <div class='page-subtitle-txt'>Sincronize suas contas bancárias via Pluggy</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -1095,19 +1081,19 @@ connect.init();
                     deletar_conexao(cx[0]); st.rerun()
 
     # ── DASHBOARD & OTHERS ──
-    elif menu in ["📊 Dashboard", "📈 Analytics", "🧾 Transactions", "📄 Reports"]:
+    elif menu == "📊 Resumo Financeiro":
         st.markdown(f"""
         <div class='page-title-row'>
             <div>
-                <div class='page-title-txt'>Market Overview</div>
-                <div class='page-subtitle-txt'>{datetime.now().strftime("Today is %A, %d %B, %Y.")}</div>
+                <div class='page-title-txt'>Resumo Financeiro</div>
+                <div class='page-subtitle-txt'>{"Hoje é " + datetime.now().strftime("%A, %d de %B de %Y.")}</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
         conexoes = buscar_conexoes_usuario(st.session_state['usuario_id'])
         if not conexoes:
-            st.warning("Nenhum banco conectado. Vá em '📂 Portfolios' para começar.")
+            st.warning("Nenhum banco conectado. Vá em '🏦 Bancos' para começar.")
         else:
             bancos_dict = {f"{c[2]} ({c[1][:5]})": c[1] for c in conexoes}
 
@@ -1116,6 +1102,23 @@ connect.init();
             sel_banco = c_sel1.selectbox("Selecione a conta:", list(bancos_dict.keys()), label_visibility="collapsed")
 
             # Seletor de Tempo (Time Selector) estilo Trading
+            st.markdown("""
+            <style>
+            div[data-testid="stHorizontalBlock"] button {
+                background: #1E1E1E !important;
+                border: 1px solid rgba(255,255,255,0.1) !important;
+                color: #888 !important;
+                border-radius: 8px !important;
+                font-weight: 600 !important;
+                transition: 0.3s !important;
+            }
+            div[data-testid="stHorizontalBlock"] button:hover {
+                border-color: var(--accent) !important;
+                color: var(--accent) !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+
             ts_cols = st.columns([1,1,1,1,1,5])
             if ts_cols[0].button("1H", use_container_width=True): pass
             if ts_cols[1].button("1D", use_container_width=True): pass
@@ -1160,8 +1163,8 @@ connect.init();
                     # FILTROS SIDEBAR (Escondidos mas funcionais)
                     with st.sidebar:
                         st.markdown("<hr style='border-color:rgba(255,255,255,0.07);margin:8px 0;'>", unsafe_allow_html=True)
-                        d1 = st.date_input("Start Date", df['date'].min().date())
-                        d2 = st.date_input("End Date", df['date'].max().date())
+                        d1 = st.date_input("Data Inicial", df['date'].min().date())
+                        d2 = st.date_input("Data Final", df['date'].max().date())
 
                     df_f = df[(df['date'].dt.date >= d1) & (df['date'].dt.date <= d2)]
 
@@ -1181,14 +1184,14 @@ connect.init();
                     """, unsafe_allow_html=True)
 
                     c1, c2, c3, c4 = st.columns(4)
-                    c1.markdown(f'<div class="market-card"><div class="market-label">TOTAL BALANCE</div><div class="market-value">R$ {saldo_total:,.2f}</div><div class="market-change up">▲ 2.4%</div></div>', unsafe_allow_html=True)
-                    c2.markdown(f'<div class="market-card"><div class="market-label">INFLOWS</div><div class="market-value">R$ {entradas:,.2f}</div><div class="market-change up">▲ 12.1%</div></div>', unsafe_allow_html=True)
-                    c3.markdown(f'<div class="market-card"><div class="market-label">OUTFLOWS</div><div class="market-value">R$ {saidas:,.2f}</div><div class="market-change down">▼ 3.5%</div></div>', unsafe_allow_html=True)
-                    c4.markdown(f'<div class="market-card"><div class="market-label">TRANSACTIONS</div><div class="market-value">{len(df_f)}</div><div class="market-change up">Active</div></div>', unsafe_allow_html=True)
+                    c1.markdown(f'<div class="market-card"><div class="market-label">SALDO TOTAL</div><div class="market-value">R$ {saldo_total:,.2f}</div><div class="market-change up">▲ Atualizado</div></div>', unsafe_allow_html=True)
+                    c2.markdown(f'<div class="market-card"><div class="market-label">ENTRADAS</div><div class="market-value">R$ {entradas:,.2f}</div><div class="market-change up">▲ No período</div></div>', unsafe_allow_html=True)
+                    c3.markdown(f'<div class="market-card"><div class="market-label">SAÍDAS</div><div class="market-value">R$ {saidas:,.2f}</div><div class="market-change down">▼ No período</div></div>', unsafe_allow_html=True)
+                    c4.markdown(f'<div class="market-card"><div class="market-label">TRANSAÇÕES</div><div class="market-value">{len(df_f)}</div><div class="market-change up">Ativas</div></div>', unsafe_allow_html=True)
 
                     # ── MAIN CANDLESTICK CHART ──
                     st.markdown("<div class='market-card' style='padding: 20px;'>", unsafe_allow_html=True)
-                    st.markdown("<h5 style='margin-bottom:20px;'>📈 Market Trend</h5>", unsafe_allow_html=True)
+                    st.markdown("<h5 style='margin-bottom:20px;'>📈 Tendência de Fluxo</h5>", unsafe_allow_html=True)
 
                     df_candle = df_f.copy()
                     df_candle['date_only'] = df_candle['date'].dt.date
@@ -1206,21 +1209,21 @@ connect.init();
                                     increasing_line_color= '#00FF94', decreasing_line_color= '#FF3B3B')])
                     fig_candle.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                         margin=dict(t=0,b=0,l=0,r=0), height=400, xaxis=dict(showgrid=False, rangeslider=dict(visible=False)),
-                        yaxis=dict(gridcolor='rgba(255,255,255,0.05)', side='right', font=dict(size=10)))
+                        yaxis=dict(gridcolor='rgba(255,255,255,0.05)', side='right', tickfont=dict(size=10, color='white')))
                     st.plotly_chart(fig_candle, use_container_width=True)
                     st.markdown("</div>", unsafe_allow_html=True)
 
                     # ── BOTTOM SECTIONS ──
                     col_b1, col_b2 = st.columns([2, 1])
                     with col_b1:
-                        st.markdown("<div class='market-card' style='height: 450px; overflow: auto;'><h5>🧾 Recent Transactions</h5>", unsafe_allow_html=True)
+                        st.markdown("<div class='market-card' style='height: 450px; overflow: auto;'><h5>🧾 Transações Recentes</h5>", unsafe_allow_html=True)
                         df_ext = df_f[['date','descricao_completa','valor_abs','tipo','categoria']].copy().sort_values('date',ascending=False)
-                        df_ext.columns = ['Date','Description','Amount','Type','Category']
+                        df_ext.columns = ['Data','Descrição','Valor','Tipo','Categoria']
                         st.dataframe(df_ext, use_container_width=True, hide_index=True)
                         st.markdown("</div>", unsafe_allow_html=True)
 
                     with col_b2:
-                        st.markdown("<div class='market-card' style='height: 450px;'><h5>🍩 Portfolio</h5>", unsafe_allow_html=True)
+                        st.markdown("<div class='market-card' style='height: 450px;'><h5>🍩 Distribuição</h5>", unsafe_allow_html=True)
                         cat_grp = df_f[df_f['tipo']=='Saída'].groupby('categoria')['valor_abs'].sum().reset_index()
                         if not cat_grp.empty:
                             fig_p = px.pie(cat_grp, values='valor_abs', names='categoria', hole=0.7, color_discrete_sequence=['#00FF94', '#3b8beb', '#8b5cf6', '#FFD700'])
@@ -1228,8 +1231,8 @@ connect.init();
                             st.plotly_chart(fig_p, use_container_width=True)
 
                         st.markdown("<hr style='border-color:rgba(255,255,255,0.05)'>", unsafe_allow_html=True)
-                        st.download_button("📊 Export Excel", gerar_excel(df_ext, entradas, saidas, saldo_total, 0), "report.xlsx", use_container_width=True)
-                        st.download_button("📄 Export PDF", gerar_pdf(df_ext, entradas, saidas, saldo_total, 0), "report.pdf", use_container_width=True)
+                        st.download_button("📊 Exportar Excel", gerar_excel(df_ext, entradas, saidas, saldo_total, 0), "relatorio.xlsx", use_container_width=True)
+                        st.download_button("📄 Exportar PDF", gerar_pdf(df_ext, entradas, saidas, saldo_total, 0), "relatorio.pdf", use_container_width=True)
                         st.markdown("</div>", unsafe_allow_html=True)
 
 
