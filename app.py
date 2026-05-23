@@ -40,9 +40,15 @@ st.markdown("""
 }
 
 /* ── RESET & BASE ── */
-html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif !important;
+html, body, p, h1, h2, h3, h4, h5, h6, span, div {
+    font-family: 'Inter', sans-serif;
+}
+html, body {
     color: var(--t1);
+}
+/* Revert font for icons explicitly */
+.material-icons, .material-symbols-rounded, [class*="icon"], [data-testid="collapsedControl"] svg {
+    font-family: 'Material Symbols Rounded', 'Material Icons', sans-serif !important;
 }
 
 @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
@@ -52,17 +58,7 @@ html, body, [class*="css"] {
 footer { visibility: hidden !important; }
 .stAppDeployButton { display: none !important; }
 
-/* Corrige o texto do icone que nao estava carregando a fonte */
-[data-testid="collapsedControl"] {
-    font-family: 'Material Icons' !important;
-    background-color: var(--card) !important;
-    color: var(--cyan) !important;
-    border: 1px solid var(--cyan) !important;
-    border-radius: 8px !important;
-    padding: 0px !important;
-    margin-top: 15px !important;
-    margin-left: 15px !important;
-}
+
 
 .block-container { 
     padding-top: 5rem !important;
