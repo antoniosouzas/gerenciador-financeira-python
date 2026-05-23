@@ -12,7 +12,7 @@ import psycopg2
 from datetime import datetime
 
 # --- CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(page_title="GFI Financeiro", layout="wide", page_icon="💼")
+st.set_page_config(page_title="GFI Financeiro", layout="wide", page_icon="💼", initial_sidebar_state="expanded")
 
 # --- CSS IDÊNTICO AO NOVA DAYS DE REFERÊNCIA ---
 st.markdown("""
@@ -47,9 +47,14 @@ html, body, [class*="css"] {
 
 .stApp { background-color: var(--bg) !important; }
 
-#MainMenu, header, footer { visibility: hidden !important; }
+footer { visibility: hidden !important; }
+.stAppDeployButton { display: none !important; }
+
 .block-container { 
-    padding: 1.5rem 2rem 2rem 2rem !important;
+    padding-top: 5rem !important;
+    padding-bottom: 2rem !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
     max-width: 100% !important;
 }
 
