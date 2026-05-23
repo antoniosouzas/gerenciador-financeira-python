@@ -48,7 +48,10 @@ html, body, [class*="css"] {
 
 .stApp { background-color: var(--bg) !important; }
 
-#MainMenu, header, footer { visibility: hidden !important; }
+footer { visibility: hidden !important; }
+[data-testid="stHeader"] { background: transparent !important; }
+[data-testid="stHeader"] .stAppDeployButton { display: none !important; }
+[data-testid="stToolbar"] { display: none !important; }
 .block-container { 
     padding: 1.5rem 2rem 2rem 2rem !important;
     max-width: 100% !important;
@@ -1017,7 +1020,7 @@ function copiarID(){{navigator.clipboard.writeText(capturedItemId).then(function
 var connect=new PluggyConnect({{connectToken:'{token}',onSuccess:function(data){{capturedItemId=data.item.id;document.getElementById('widget-area').style.display='none';document.getElementById('id-display').textContent=capturedItemId;document.getElementById('success-box').style.display='block';}},onClose:function(){{document.getElementById('widget-area').innerHTML='<p style="color:#8896b0;text-align:center;padding:60px;">Conexão encerrada.</p>';}},onError:function(err){{document.getElementById('widget-area').innerHTML='<p style="color:#ff5e6c;text-align:center;padding:60px;">Erro na conexão.</p>';}} }});
 connect.init();
 </script></body></html>
-""", height=540)
+""", height=700, scrolling=True)
 
                 st.markdown("<p style='color:#8896b0;font-size:0.85rem;margin-top:8px;'>👆 Após conectar, copie o ID e cole aqui:</p>", unsafe_allow_html=True)
                 item_id_input = st.text_input("ID da Conexão", placeholder="Cole o ID aqui...", label_visibility="collapsed")
