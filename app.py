@@ -1200,10 +1200,5 @@ connect.init();
                         c_ex1.download_button("📊 Baixar Excel", gerar_excel(df_export, entradas, saidas, saldo, total_cartao), "extrato.xlsx")
                         c_ex2.download_button("📄 Baixar PDF", gerar_pdf(df_export, entradas, saidas, saldo, total_cartao), "relatorio.pdf")
 
-                        st.markdown("---")
-                        with st.expander("🛠️ Modo Desenvolvedor: Inspecionar Dados do Banco"):
-                            st.info("Dados puros retornados pelo banco.")
-                            pix_brutos = [t for t in trans if 'pix' in str(t.get('description','')).lower() or 'pix' in str(t.get('descriptionRaw','')).lower()]
-                            if pix_brutos: st.json(pix_brutos[:5])
-                            else: st.warning("Nenhuma transação PIX encontrada.")
+
                             
