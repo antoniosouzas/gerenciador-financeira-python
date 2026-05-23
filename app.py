@@ -45,17 +45,11 @@ html, body {
     color: var(--t1);
 }
 
-/* SUPER HACK FOR SIDEBAR ICON */
+/* OCULTA O BOTAO DE RECOLHER A BARRA LATERAL (DEIXA ELA FIXA) */
 [data-testid="collapsedControl"] {
-    font-family: 'Material Symbols Rounded' !important;
+    display: none !important;
 }
-[data-testid="collapsedControl"] svg {
-    display: block !important;
-}
-[data-testid="collapsedControl"] span, 
-[data-testid="collapsedControl"] div {
-    font-family: 'Material Symbols Rounded' !important;
-}
+
 
 .stApp { background-color: var(--bg) !important; }
 
