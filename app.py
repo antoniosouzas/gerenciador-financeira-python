@@ -17,6 +17,7 @@ st.set_page_config(page_title="GFI Financeiro", layout="wide", page_icon="💼",
 # --- CSS IDÊNTICO AO NOVA DAYS DE REFERÊNCIA ---
 st.markdown("""
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
@@ -42,6 +43,18 @@ st.markdown("""
 /* ── BASE BACKGROUND & LAYOUT ── */
 html, body {
     color: var(--t1);
+}
+
+/* SUPER HACK FOR SIDEBAR ICON */
+[data-testid="collapsedControl"] {
+    font-family: 'Material Symbols Rounded' !important;
+}
+[data-testid="collapsedControl"] svg {
+    display: block !important;
+}
+[data-testid="collapsedControl"] span, 
+[data-testid="collapsedControl"] div {
+    font-family: 'Material Symbols Rounded' !important;
 }
 
 .stApp { background-color: var(--bg) !important; }
@@ -952,6 +965,7 @@ else:
                 components.html(f"""
 <!DOCTYPE html><html><head>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0');
 * {{ box-sizing:border-box;margin:0;padding:0; }}
 body {{ background:transparent;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }}
 #widget-area {{ min-height:460px; }}
