@@ -45,10 +45,24 @@ html, body, [class*="css"] {
     color: var(--t1);
 }
 
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
 .stApp { background-color: var(--bg) !important; }
 
 footer { visibility: hidden !important; }
 .stAppDeployButton { display: none !important; }
+
+/* Corrige o texto do icone que nao estava carregando a fonte */
+[data-testid="collapsedControl"] {
+    font-family: 'Material Icons' !important;
+    background-color: var(--card) !important;
+    color: var(--cyan) !important;
+    border: 1px solid var(--cyan) !important;
+    border-radius: 8px !important;
+    padding: 0px !important;
+    margin-top: 15px !important;
+    margin-left: 15px !important;
+}
 
 .block-container { 
     padding-top: 5rem !important;
