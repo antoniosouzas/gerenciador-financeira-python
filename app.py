@@ -1086,7 +1086,7 @@ connect.init();
                 if c2.button("🗑", key=f"del_cx_{i}"):
                     deletar_conexao(cx[0]); st.rerun()
 
-   # ── DASHBOARD & OTHERS ──
+ # ── DASHBOARD & OTHERS ──
     elif menu == "📊 Resumo Financeiro":
         st.markdown(f"""
         <div class='page-title-row'>
@@ -1171,7 +1171,6 @@ connect.init();
                     is_credit_card = conta_ativa.get('tipo') == 'CREDIT_CARD'
                     nome_conta_ativa = conta_ativa.get('nome', 'Conta')
 
-                    # Variáveis extras para evitar quebrar o Excel
                     total_faturas = saldo_real_atual if is_credit_card else 0
 
                     entradas = df_f[df_f['tipo']=='Entrada']['valor_abs'].sum()
@@ -1199,43 +1198,38 @@ connect.init();
                     c3.markdown(f'<div class="market-card"><div class="market-label">SAÍDAS</div><div class="market-value">R$ {saidas:,.2f}</div><div class="market-change down">No período filtrado</div></div>', unsafe_allow_html=True)
                     c4.markdown(f'<div class="market-card"><div class="market-label">TRANSAÇÕES</div><div class="market-value">{len(df_f)}</div><div class="market-change up">Volume no período</div></div>', unsafe_allow_html=True)
 
-                    # 6. MAIN CANDLESTICK CHART
+                    # 6. MAIN CHART - Substituindo Candlestick por Gráfico de Barras (Fluxo Diário)
                     if not df_f.empty:
                         st.markdown("<div class='market-card' style='padding: 20px;'>", unsafe_allow_html=True)
-                        st.markdown(f"<h5 style='margin-bottom:20px;'>📈 Tendência de Fluxo</h5>", unsafe_allow_html=True)
+                        st.markdown(f"<h5 style='margin-bottom:20px;'>📈 Fluxo Diário (Entradas vs Saídas)</h5>", unsafe_allow_html=True)
 
-                        df_candle = df_f.copy()
-                        df_candle['date_only'] = df_candle['date'].dt.date
-                        df_candle['valor_sinal'] = df_candle.apply(lambda r: r['valor_abs'] if r['tipo']=='Entrada' else -r['valor_abs'], axis=1)
-                        df_daily = df_candle.groupby('date_only')['valor_sinal'].sum().reset_index()
+                        df_fluxo = df_f.copy()
+                        df_fluxo['Data'] = df_fluxo['date'].dt.date
+                        df_g = df_fluxo.groupby(['Data', 'tipo'])['valor_abs'].sum().reset_index()
                         
-                        df_daily['close'] = df_daily['valor_sinal'].cumsum() + (saldo_real_atual - df_daily['valor_sinal'].sum())
-                        df_daily['open'] = df_daily['close'].shift(1).fillna(df_daily['close'] - df_daily['valor_sinal'])
-                        df_daily['high'] = df_daily[['open', 'close']].max(axis=1) * 1.005
-                        df_daily['low'] = df_daily[['open', 'close']].min(axis=1) * 0.995
-
-                        import plotly.graph_objects as go
-                        fig_candle = go.Figure(data=[go.Candlestick(x=df_daily['date_only'],
-                                        open=df_daily['open'], high=df_daily['high'],
-                                        low=df_daily['low'], close=df_daily['close'],
-                                        increasing_line_color= '#00FF94', decreasing_line_color= '#FF3B3B')])
-                        fig_candle.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                            margin=dict(t=0,b=0,l=0,r=0), height=400, xaxis=dict(showgrid=False, rangeslider=dict(visible=False)),
-                            yaxis=dict(gridcolor='rgba(255,255,255,0.05)', side='right', tickfont=dict(size=10, color='white')))
-                        st.plotly_chart(fig_candle, use_container_width=True)
+                        fig_fluxo = px.bar(
+                            df_g, x='Data', y='valor_abs', color='tipo', barmode='group',
+                            color_discrete_map={'Entrada': '#00FF94', 'Saída': '#FF3B3B'},
+                            labels={'valor_abs': 'Valor (R$)', 'Data': '', 'tipo': 'Tipo'}
+                        )
+                        fig_fluxo.update_layout(
+                            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                            margin=dict(t=0,b=0,l=0,r=0), height=350,
+                            xaxis=dict(showgrid=False, tickfont=dict(color='white')),
+                            yaxis=dict(gridcolor='rgba(255,255,255,0.05)', tickfont=dict(color='white')),
+                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(color="white"))
+                        )
+                        st.plotly_chart(fig_fluxo, use_container_width=True)
                         st.markdown("</div>", unsafe_allow_html=True)
 
-                    # 7. BOTTOM SECTIONS (Tabelas de Transações e Categorias)
+                    # 7. BOTTOM SECTIONS
                     col_b1, col_b2 = st.columns([1.5, 1.5]) 
                     with col_b1:
-                        # Título limpo sem a tag div que ejetava a tabela
                         st.markdown("<h5 style='margin-bottom: 15px; color: #FFF;'>🧾 Últimas 10 Transações</h5>", unsafe_allow_html=True)
                         if not df_f.empty:
-                            # Prepara todas as transações para exportação
                             df_export = df_f[['date','descricao_completa','valor_abs','tipo','categoria']].copy().sort_values('date',ascending=False)
                             df_export.columns = ['Data','Descrição','Valor (R$)','Tipo','Categoria']
                             
-                            # Prepara a tela
                             df_tela = df_export.head(10).copy()
                             df_tela['Data'] = df_tela['Data'].dt.strftime('%d/%m/%Y %H:%M')
                             
@@ -1253,6 +1247,14 @@ connect.init();
                                 cat_grp = cat_grp.sort_values('valor_abs', ascending=False)
                                 cat_grp.columns = ['Categoria', 'Total Gasto (R$)']
                                 
+                                # Gráfico de Pizza (Menor para caber junto com a tabela)
+                                fig_p = px.pie(cat_grp, values='Total Gasto (R$)', names='Categoria', hole=0.6, 
+                                               color_discrete_sequence=['#00FF94', '#3b8beb', '#8b5cf6', '#FFD700', '#ff5e6c', '#00d4e8'])
+                                fig_p.update_traces(textposition='inside', textinfo='percent+label')
+                                fig_p.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', showlegend=False, margin=dict(t=10,b=20,l=10,r=10), height=250)
+                                st.plotly_chart(fig_p, use_container_width=True)
+                                
+                                # Tabela logo abaixo do Gráfico
                                 st.dataframe(cat_grp, use_container_width=True, hide_index=True)
                             else:
                                 st.info("Não houve gastos/saídas neste período.")
