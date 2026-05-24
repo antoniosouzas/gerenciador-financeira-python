@@ -1143,37 +1143,30 @@ connect.init();
 
                     # 2. FILTROS (DATAS E CATEGORIAS)
                     st.markdown("<hr style='border-color:rgba(255,255,255,0.05); margin-top: 0px;'>", unsafe_allow_html=True)
-                    col_f1, col_f2 = st.columns(2)
+                    # Coluna de datas ligeiramente maior para acomodar os dois calendários confortavelmente
+                    col_f1, col_f2 = st.columns([1.2, 1]) 
                     
                     with col_f1:
-                        # Substituindo por seletor de Intervalo de Datas
+                        # Criando duas caixas separadas para facilitar a seleção e evitar confusão
+                        c_data_inicio, c_data_fim = st.columns(2)
                         data_atual = datetime.now()
                         data_inicio_padrao = data_atual - pd.Timedelta(days=30)
-                        datas_selecionadas = st.date_input(
-                            "📅 Período (Início e Fim):",
-                            value=(data_inicio_padrao, data_atual),
-                            max_value=data_atual
-                        )
+                        
+                        data_inicio_selecionada = c_data_inicio.date_input("📅 Data Início:", value=data_inicio_padrao, max_value=data_atual)
+                        data_fim_selecionada = c_data_fim.date_input("📅 Data Fim:", value=data_atual, max_value=data_atual)
+                        
                     with col_f2:
                         lista_categorias = ["Todas as Categorias"] + sorted(list(df['categoria'].unique()))
                         cat_selecionada = st.selectbox("🏷️ Filtrar Categoria:", lista_categorias)
 
                     # 3. APLICAR FILTROS NO DATAFRAME
-                    # Tratamento seguro caso o usuário selecione apenas 1 data ou um intervalo
-                    if isinstance(datas_selecionadas, tuple) and len(datas_selecionadas) == 2:
-                        start_date = pd.to_datetime(datas_selecionadas[0])
-                        end_date = pd.to_datetime(datas_selecionadas[1]) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
-                    elif isinstance(datas_selecionadas, tuple) and len(datas_selecionadas) == 1:
-                        start_date = pd.to_datetime(datas_selecionadas[0])
-                        end_date = start_date + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
-                    else:
-                        start_date = pd.to_datetime(datas_selecionadas)
-                        end_date = start_date + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+                    # Como agora são datas isoladas, não precisamos mais daquele código complexo de tuplas
+                    start_date = pd.to_datetime(data_inicio_selecionada)
+                    end_date = pd.to_datetime(data_fim_selecionada) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
 
                     df_f = df[(df['date'] >= start_date) & (df['date'] <= end_date)]
                     if cat_selecionada != "Todas as Categorias":
                         df_f = df_f[df_f['categoria'] == cat_selecionada]
-
                     # 4. CORREÇÃO DA LÓGICA DO SALDO
                     # O sistema agora pega estritamente o saldo da conta que gerou o extrato (info_contas[0])
                     conta_ativa = info_contas[0] if info_contas else {}
