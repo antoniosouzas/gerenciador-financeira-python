@@ -1143,11 +1143,9 @@ connect.init();
 
                     # 2. FILTROS (DATAS E CATEGORIAS)
                     st.markdown("<hr style='border-color:rgba(255,255,255,0.05); margin-top: 0px;'>", unsafe_allow_html=True)
-                    # Coluna de datas ligeiramente maior para acomodar os dois calendários confortavelmente
                     col_f1, col_f2 = st.columns([1.2, 1]) 
                     
                     with col_f1:
-                        # Criando duas caixas separadas para facilitar a seleção e evitar confusão
                         c_data_inicio, c_data_fim = st.columns(2)
                         data_atual = datetime.now()
                         data_inicio_padrao = data_atual - pd.Timedelta(days=30)
@@ -1160,19 +1158,21 @@ connect.init();
                         cat_selecionada = st.selectbox("🏷️ Filtrar Categoria:", lista_categorias)
 
                     # 3. APLICAR FILTROS NO DATAFRAME
-                    # Como agora são datas isoladas, não precisamos mais daquele código complexo de tuplas
                     start_date = pd.to_datetime(data_inicio_selecionada)
                     end_date = pd.to_datetime(data_fim_selecionada) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
 
                     df_f = df[(df['date'] >= start_date) & (df['date'] <= end_date)]
                     if cat_selecionada != "Todas as Categorias":
                         df_f = df_f[df_f['categoria'] == cat_selecionada]
+
                     # 4. CORREÇÃO DA LÓGICA DO SALDO
-                    # O sistema agora pega estritamente o saldo da conta que gerou o extrato (info_contas[0])
                     conta_ativa = info_contas[0] if info_contas else {}
                     saldo_real_atual = conta_ativa.get('saldo', 0)
                     is_credit_card = conta_ativa.get('tipo') == 'CREDIT_CARD'
                     nome_conta_ativa = conta_ativa.get('nome', 'Conta')
+
+                    # Variáveis extras para evitar quebrar o Excel
+                    total_faturas = saldo_real_atual if is_credit_card else 0
 
                     entradas = df_f[df_f['tipo']=='Entrada']['valor_abs'].sum()
                     saidas = df_f[df_f['tipo']=='Saída']['valor_abs'].sum()
@@ -1225,43 +1225,41 @@ connect.init();
                         st.plotly_chart(fig_candle, use_container_width=True)
                         st.markdown("</div>", unsafe_allow_html=True)
 
-                    # 7. BOTTOM SECTIONS
-                    col_b1, col_b2 = st.columns([1.8, 1.2])
+                    # 7. BOTTOM SECTIONS (Tabelas de Transações e Categorias)
+                    col_b1, col_b2 = st.columns([1.5, 1.5]) # Ajustei para metades iguais
                     with col_b1:
                         st.markdown("<div class='market-card' style='height: 480px; overflow: auto;'><h5>🧾 Últimas 10 Transações</h5>", unsafe_allow_html=True)
                         if not df_f.empty:
-                            df_ext = df_f[['date','descricao_completa','valor_abs','tipo','categoria']].copy().sort_values('date',ascending=False).head(10)
-                            df_ext.columns = ['Data','Descrição','Valor','Tipo','Categoria']
-                            st.dataframe(df_ext, use_container_width=True, hide_index=True)
+                            # Prepara todas as transações para exportação (PDF/Excel vão usar isso)
+                            df_export = df_f[['date','descricao_completa','valor_abs','tipo','categoria']].copy().sort_values('date',ascending=False)
+                            df_export.columns = ['Data','Descrição','Valor (R$)','Tipo','Categoria']
+                            
+                            # Prepara apenas as 10 últimas para a tela e converte a data pra texto (força a tabela a aparecer)
+                            df_tela = df_export.head(10).copy()
+                            df_tela['Data'] = df_tela['Data'].dt.strftime('%d/%m/%Y %H:%M')
+                            
+                            st.dataframe(df_tela, use_container_width=True, hide_index=True)
                         else:
                             st.info("Nenhuma transação atende aos filtros selecionados.")
                         st.markdown("</div>", unsafe_allow_html=True)
 
                     with col_b2:
-                        st.markdown("<div class='market-card' style='height: 480px;'><h5>🍩 Distribuição por Categoria (Saídas)</h5>", unsafe_allow_html=True)
-                        cat_grp = df_f[df_f['tipo']=='Saída'].groupby('categoria')['valor_abs'].sum().reset_index()
-                        if not cat_grp.empty:
-                            # Adicionando o valor formatado para aparecer no gráfico
-                            cat_grp['valor_fmt'] = cat_grp['valor_abs'].apply(lambda x: f"R$ {x:,.2f}")
+                        st.markdown("<div class='market-card' style='height: 480px; overflow: auto;'><h5>📊 Gastos por Categoria (Saídas)</h5>", unsafe_allow_html=True)
+                        
+                        if not df_f.empty:
+                            # Agrupa apenas as saídas por categoria
+                            cat_grp = df_f[df_f['tipo']=='Saída'].groupby('categoria')['valor_abs'].sum().reset_index()
                             
-                            fig_p = px.pie(cat_grp, values='valor_abs', names='categoria', hole=0.6, 
-                                           color_discrete_sequence=['#00FF94', '#3b8beb', '#8b5cf6', '#FFD700', '#ff5e6c', '#00d4e8'],
-                                           custom_data=['valor_fmt'])
-                                           
-                            fig_p.update_traces(
-                                textposition='inside', 
-                                textinfo='percent+label',
-                                hovertemplate='<b>%{label}</b><br>Total Gasto: %{customdata[0]}<extra></extra>'
-                            )
-                            fig_p.update_layout(
-                                paper_bgcolor='rgba(0,0,0,0)', 
-                                plot_bgcolor='rgba(0,0,0,0)', 
-                                showlegend=False, 
-                                margin=dict(t=10,b=10,l=10,r=10)
-                            )
-                            st.plotly_chart(fig_p, use_container_width=True)
+                            if not cat_grp.empty:
+                                cat_grp = cat_grp.sort_values('valor_abs', ascending=False)
+                                cat_grp.columns = ['Categoria', 'Total Gasto (R$)']
+                                
+                                # Mostra a tabela limpa
+                                st.dataframe(cat_grp, use_container_width=True, hide_index=True)
+                            else:
+                                st.info("Não houve gastos/saídas neste período.")
                         else:
-                            st.info("Sem saídas no período.")
+                            st.info("Nenhuma transação atende aos filtros selecionados.")
 
                         st.markdown("<hr style='border-color:rgba(255,255,255,0.05)'>", unsafe_allow_html=True)
                         
@@ -1269,8 +1267,9 @@ connect.init();
                         if not df_f.empty:
                             c_btn_xls, c_btn_pdf = st.columns(2)
                             with c_btn_xls:
-                                st.download_button("📊 Excel", gerar_excel(df_ext, entradas, saidas, saldo_real_atual, 0), "relatorio.xlsx", use_container_width=True)
+                                # Usa df_export para baixar TODAS as transações do filtro, não apenas 10
+                                st.download_button("📊 Excel", gerar_excel(df_export, entradas, saidas, saldo_real_atual, abs(total_faturas)), "relatorio.xlsx", use_container_width=True)
                             with c_btn_pdf:
-                                st.download_button("📄 PDF", gerar_pdf(df_ext, entradas, saidas, saldo_real_atual, 0), "relatorio.pdf", use_container_width=True)
+                                st.download_button("📄 PDF", gerar_pdf(df_export, entradas, saidas, saldo_real_atual, abs(total_faturas)), "relatorio.pdf", use_container_width=True)
                         
                         st.markdown("</div>", unsafe_allow_html=True)
