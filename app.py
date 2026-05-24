@@ -1226,50 +1226,45 @@ connect.init();
                         st.markdown("</div>", unsafe_allow_html=True)
 
                     # 7. BOTTOM SECTIONS (Tabelas de Transações e Categorias)
-                    col_b1, col_b2 = st.columns([1.5, 1.5]) # Ajustei para metades iguais
+                    col_b1, col_b2 = st.columns([1.5, 1.5]) 
                     with col_b1:
-                        st.markdown("<div class='market-card' style='height: 480px; overflow: auto;'><h5>🧾 Últimas 10 Transações</h5>", unsafe_allow_html=True)
+                        # Título limpo sem a tag div que ejetava a tabela
+                        st.markdown("<h5 style='margin-bottom: 15px; color: #FFF;'>🧾 Últimas 10 Transações</h5>", unsafe_allow_html=True)
                         if not df_f.empty:
-                            # Prepara todas as transações para exportação (PDF/Excel vão usar isso)
+                            # Prepara todas as transações para exportação
                             df_export = df_f[['date','descricao_completa','valor_abs','tipo','categoria']].copy().sort_values('date',ascending=False)
                             df_export.columns = ['Data','Descrição','Valor (R$)','Tipo','Categoria']
                             
-                            # Prepara apenas as 10 últimas para a tela e converte a data pra texto (força a tabela a aparecer)
+                            # Prepara a tela
                             df_tela = df_export.head(10).copy()
                             df_tela['Data'] = df_tela['Data'].dt.strftime('%d/%m/%Y %H:%M')
                             
                             st.dataframe(df_tela, use_container_width=True, hide_index=True)
                         else:
                             st.info("Nenhuma transação atende aos filtros selecionados.")
-                        st.markdown("</div>", unsafe_allow_html=True)
 
                     with col_b2:
-                        st.markdown("<div class='market-card' style='height: 480px; overflow: auto;'><h5>📊 Gastos por Categoria (Saídas)</h5>", unsafe_allow_html=True)
+                        st.markdown("<h5 style='margin-bottom: 15px; color: #FFF;'>📊 Gastos por Categoria (Saídas)</h5>", unsafe_allow_html=True)
                         
                         if not df_f.empty:
-                            # Agrupa apenas as saídas por categoria
                             cat_grp = df_f[df_f['tipo']=='Saída'].groupby('categoria')['valor_abs'].sum().reset_index()
                             
                             if not cat_grp.empty:
                                 cat_grp = cat_grp.sort_values('valor_abs', ascending=False)
                                 cat_grp.columns = ['Categoria', 'Total Gasto (R$)']
                                 
-                                # Mostra a tabela limpa
                                 st.dataframe(cat_grp, use_container_width=True, hide_index=True)
                             else:
                                 st.info("Não houve gastos/saídas neste período.")
                         else:
                             st.info("Nenhuma transação atende aos filtros selecionados.")
 
-                        st.markdown("<hr style='border-color:rgba(255,255,255,0.05)'>", unsafe_allow_html=True)
+                        st.markdown("<br>", unsafe_allow_html=True)
                         
                         # --- BOTOES NA HORIZONTAL ---
                         if not df_f.empty:
                             c_btn_xls, c_btn_pdf = st.columns(2)
                             with c_btn_xls:
-                                # Usa df_export para baixar TODAS as transações do filtro, não apenas 10
                                 st.download_button("📊 Excel", gerar_excel(df_export, entradas, saidas, saldo_real_atual, abs(total_faturas)), "relatorio.xlsx", use_container_width=True)
                             with c_btn_pdf:
                                 st.download_button("📄 PDF", gerar_pdf(df_export, entradas, saidas, saldo_real_atual, abs(total_faturas)), "relatorio.pdf", use_container_width=True)
-                        
-                        st.markdown("</div>", unsafe_allow_html=True)
